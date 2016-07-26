@@ -1,4 +1,5 @@
 # Android In-App Billing Library
+[![Build Status](https://travis-ci.org/alessandrojp/android-inapp-billing.svg)](https://travis-ci.org/alessandrojp/android-inapp-billing)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 Fast and easy to use Android In-app Billing Library.
