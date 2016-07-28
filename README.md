@@ -6,7 +6,9 @@ Fast and easy to use Android In-app Billing Library.
 
 This library supports both non-consumable/consumable items and upgrading/downgrading of subscriptions.
 
-To do upgrade/downgrade of a subscription you must use the api version 5.
+NOTE: Upgrade/Downgrade of subscriptions are only available in the api version 5.
+You can still set the api version 3 for other actions in the library.
+The api version 5 automatically will be used only in this case.
 
 # Let's get started
 ### Installation
@@ -63,7 +65,7 @@ You can create one as follows:
   BillingContext context = new BillingContext(
                 context,
                 base64EncodedPublicKey,
-                BillingApi.VERSION_5, // It also supports version 3
+                BillingApi.VERSION_3, // It also supports api version 5
                 mActionHandler,
                 mEventHandler,
                 new SystemLogger() // If don't want to check the logs, you can just give null
@@ -170,7 +172,7 @@ You can create one as follows:
 As a result you will get a [Purchase](#purchase-object) object.
 
 # Consume Purchased Item
-* You can consume a purchased item anytime and allow the user to buy the same item again. To do this call `ItemProcessor.consumePurchase` like this:
+* You can consume a purchased item anytime and allow the user to buy the same item again. To do this call `ItemProcessor.consume` like this:
 
   ```java
   mItemProcessor.consume("YOUR_ITEM_SKU", new ConsumeItemHandler() {
@@ -187,8 +189,11 @@ As a result you will get a [Purchase](#purchase-object) object.
   ```
 
 # Upgrade/Downgrade Subscription
-* You can upgrade/downgrade an existing subscription by calling `ItemProcessor.consumePurchase` like this:
-**You must use the api version 5 to do this**
+* You can upgrade/downgrade an existing subscription by calling `mSubscriptionProcessor.update` like this:
+
+**This is only available in the api version 5.
+You can still set the api version 3 for other actions in the library.
+The api version 5 automatically will be used only in this case.**
 
   ```java
   ArrayList<String> currentItemsList = new ArrayList<>();
@@ -278,7 +283,7 @@ As a result you will get a list of [Item](#item-object) objects.
 
 # Check In-App Billing service availability
 * In some devices, In-App Billing may not be available.
-Therefore, it is advisable to check whether it is available or not by calling `ItemProcessor.isServiceAvailable()` or `SubscriptionsProcessor.isServiceAvailable()` as follows:
+Therefore, it is advisable to check whether it is available or not by calling `ItemProcessor.isServiceAvailable` or `SubscriptionsProcessor.isServiceAvailable` as follows:
 
   ```java
   boolean isAvailable = ItemProcessor.isServiceAvailable(getApplicationContext());
