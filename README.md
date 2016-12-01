@@ -38,7 +38,6 @@ The api version 5 automatically will be used only in this case.
 * If you use Proguard to obfuscate your code, you must add the following lines to your Proguard configuration file:
   ```xml
   -keep class com.android.vending.billing.**
-  -keep class jp.alessandro.android.iab.** {*;}
   ```
 
 ### Creating a Billing Context
@@ -244,7 +243,7 @@ As a result you will get a list of [Item](#item-object) objects.
 
 # Check In-App Billing service availability
 * In some devices, In-App Billing may not be available.
-Therefore, it is advisable to check whether it is available or not by calling `BillingProcessor.isServiceAvailable` or `BillingProcessor.isServiceAvailable` as follows:
+Therefore, it is advisable to check whether it is available or not by calling `BillingProcessor.isServiceAvailable` as follows:
 
   ```java
   boolean isAvailable = BillingProcessor.isServiceAvailable(getApplicationContext());

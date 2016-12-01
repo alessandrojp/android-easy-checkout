@@ -16,7 +16,7 @@ android:
     - tools
 
     # The BuildTools version used by your project
-    - build-tools-24.0.1
+    - build-tools-24.0.0
 
      # The SDK version used to compile your project
     - android-24
@@ -41,3 +41,7 @@ after_success:
 
 notifications:
     email: false
+
+cache:
+  directories:
+    - $HOME/.gradle

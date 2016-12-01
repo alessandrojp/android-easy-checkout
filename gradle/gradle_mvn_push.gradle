@@ -42,7 +42,7 @@ def getRepositoryPassword() {
 }
 
 // Make sure all code is compiled, tested and checked before uploadArchives.
-uploadArchives.dependsOn ':build'
+//uploadArchives.dependsOn ':build'
 
 uploadArchives {
     repositories {
