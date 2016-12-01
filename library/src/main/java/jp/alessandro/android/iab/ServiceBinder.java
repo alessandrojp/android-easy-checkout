@@ -21,10 +21,11 @@ package jp.alessandro.android.iab;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 
 import com.android.vending.billing.IInAppBillingService;
 
-class ServiceConnection implements android.content.ServiceConnection {
+class ServiceBinder implements ServiceConnection {
 
     public interface Handler {
 
@@ -37,52 +38,57 @@ class ServiceConnection implements android.content.ServiceConnection {
     private final Intent mIntent;
     private final android.os.Handler mEventHandler;
 
-    private Handler mHandler = null;
+    private Handler mHandler;
 
-    public ServiceConnection(Context context, Intent intent, android.os.Handler eventHandler) {
+    public ServiceBinder(Context context, Intent intent) {
         mContext = context.getApplicationContext();
         mIntent = intent;
-        mEventHandler = eventHandler;
+        mEventHandler = new android.os.Handler();
     }
 
     public void unbindService() {
-        mContext.unbindService(this);
+        synchronized (this) {
+            mContext.unbindService(this);
+        }
     }
 
     public void getServiceAsync(Handler handler) {
-        bindService(handler);
+        synchronized (this) {
+            bindService(handler);
+        }
     }
 
     @Override
     public void onServiceConnected(ComponentName name, android.os.IBinder binder) {
-        setBinder(binder);
+        synchronized (this) {
+            setBinder(binder);
+        }
     }
 
     @Override
     public void onServiceDisconnected(ComponentName name) {
-        setBinder(null);
+        // no-op
     }
 
     private void setBinder(android.os.IBinder binder) {
-        Handler handler;
-        IInAppBillingService serviceBinder = IInAppBillingService.Stub.asInterface(binder);
-        synchronized (this) {
-            handler = mHandler;
-            mHandler = null;
-        }
+        IInAppBillingService service = IInAppBillingService.Stub.asInterface(binder);
+        Handler handler = mHandler;
+        mHandler = null;
+
         if (handler != null) {
-            postBinder(serviceBinder, handler);
+            postBinder(service, handler);
         }
     }
 
     private void bindService(Handler handler) {
-        synchronized (this) {
-            boolean bound = mContext.bindService(mIntent, this, Context.BIND_AUTO_CREATE);
-            if (bound) {
-                mHandler = handler;
-            } else {
-                handler.onError();
-            }
+        if (mHandler != null) {
+            return;
+        }
+        boolean bound = mContext.bindService(mIntent, this, Context.BIND_AUTO_CREATE);
+        if (bound) {
+            mHandler = handler;
+        } else {
+            handler.onError();
         }
     }
 
@@ -98,10 +104,6 @@ class ServiceConnection implements android.content.ServiceConnection {
     }
 
     private void postEventHandler(Runnable r) {
-        synchronized (this) {
-            if (mEventHandler != null) {
-                mEventHandler.post(r);
-            }
-        }
+        mEventHandler.post(r);
     }
 }

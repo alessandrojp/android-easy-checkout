@@ -18,9 +18,9 @@
 
 package jp.alessandro.android.iab.handler;
 
-import jp.alessandro.android.iab.Purchase;
+import jp.alessandro.android.iab.response.PurchaseResponse;
 
-public interface PurchaseHandler extends ErrorHandler {
+public interface PurchaseHandler {
 
-    void onSuccess(Purchase purchase);
+    void call(PurchaseResponse response);
 }

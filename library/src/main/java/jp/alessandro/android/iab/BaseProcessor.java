@@ -19,10 +19,8 @@
 package jp.alessandro.android.iab;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
+import android.os.Handler;
 import android.os.RemoteException;
 
 import com.android.vending.billing.IInAppBillingService;
@@ -33,22 +31,33 @@ import java.util.Locale;
 
 import jp.alessandro.android.iab.handler.ErrorHandler;
 import jp.alessandro.android.iab.handler.InventoryHandler;
-import jp.alessandro.android.iab.handler.ItemListHandler;
+import jp.alessandro.android.iab.handler.ItemDetailListHandler;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
+import jp.alessandro.android.iab.handler.StartActivityHandler;
 import jp.alessandro.android.iab.logger.Logger;
+import jp.alessandro.android.iab.response.PurchaseResponse;
 
 abstract class BaseProcessor {
 
     protected final BillingContext mContext;
     private final String mItemType;
-    private final PurchaseLauncher mLauncher;
+    private final PurchaseFlowLauncher mLauncher;
     private final Logger mLogger;
     private final Intent mServiceIntent;
+    private final Handler mWorkHandler;
+    private final Handler mMainHandler;
 
-    BaseProcessor(BillingContext context, String itemType) {
+    private PurchaseHandler mPurchaseHandler;
+
+    BaseProcessor(BillingContext context, String itemType,
+                  PurchaseHandler purchaseHandler, Handler workHandler, Handler mainHandler) {
+
         mContext = context;
         mItemType = itemType;
-        mLauncher = new PurchaseLauncher(mContext, mItemType);
+        mPurchaseHandler = purchaseHandler;
+        mWorkHandler = workHandler;
+        mMainHandler = mainHandler;
+        mLauncher = new PurchaseFlowLauncher(mContext, mItemType);
         mLogger = context.getLogger();
 
         mServiceIntent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
@@ -56,17 +65,41 @@ abstract class BaseProcessor {
     }
 
     /**
-     * Checks if the in-app billing service is available
+     * Purchase a subscription
+     * This will be executed from UI Thread
      *
-     * @param context application context
-     * @return true if it is available
+     * @param activity         activity calling this method
+     * @param requestCode
+     * @param oldItemIds       a list of item ids to be updated
+     * @param itemId           new subscription item id
+     * @param developerPayload optional argument to be sent back with the purchase information. It helps to identify the user
+     * @param handler          callback called asynchronously
      */
-    public static boolean isServiceAvailable(Context context) {
-        PackageManager packageManager = context.getPackageManager();
-        Intent serviceIntent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
-        serviceIntent.setPackage(Constants.VENDING_PACKAGE);
-        List<ResolveInfo> list = packageManager.queryIntentServices(serviceIntent, 0);
-        return list != null && (list.size() > 0);
+    public void startPurchase(final Activity activity, final int requestCode,
+                              final List<String> oldItemIds, final String itemId,
+                              final String developerPayload, final StartActivityHandler handler) {
+
+        synchronized (this) {
+            executeInServiceOnMainThread(new ServiceBinder.Handler() {
+                @Override
+                public void onBind(IInAppBillingService service) {
+                    try {
+                        // Before launch the IAB activity, we check if subscriptions are supported.
+                        checkIfBillingIsSupported(service);
+                        mLauncher.launch(service, activity, requestCode, oldItemIds, itemId, developerPayload);
+
+                        postActivityStartedSuccess(handler);
+                    } catch (BillingException e) {
+                        postOnError(e, handler);
+                    }
+                }
+
+                @Override
+                public void onError() {
+                    postBindServiceError(handler);
+                }
+            });
+        }
     }
 
     /**
@@ -76,8 +109,8 @@ abstract class BaseProcessor {
      * @param itemIds list of SKU ids to be loaded
      * @param handler callback called asynchronously
      */
-    public void getSkuDetailsList(final ArrayList<String> itemIds, final ItemListHandler handler) {
-        executeInService(new ServiceConnection.Handler() {
+    public void getItemDetailList(final ArrayList<String> itemIds, final ItemDetailListHandler handler) {
+        executeInServiceOnWorkThread(new ServiceBinder.Handler() {
             @Override
             public void onBind(IInAppBillingService service) {
                 try {
@@ -104,7 +137,7 @@ abstract class BaseProcessor {
      * @param handler callback called asynchronously
      */
     public void getInventory(final InventoryHandler handler) {
-        executeInService(new ServiceConnection.Handler() {
+        executeInServiceOnWorkThread(new ServiceBinder.Handler() {
             @Override
             public void onBind(IInAppBillingService service) {
                 try {
@@ -126,6 +159,7 @@ abstract class BaseProcessor {
     /**
      * Checks the purchase response from Google
      * The result will be sent through PurchaseHandler
+     * This method MUST be called from UI Thread
      *
      * @param requestCode
      * @param resultCode
@@ -133,79 +167,153 @@ abstract class BaseProcessor {
      * @return
      */
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
-        PurchaseLaunchState state = unlockPurchaseLaunchState(requestCode);
-        if (state == null) {
-            return false;
+        synchronized (this) {
+            if (mLauncher.getRequestCode() != requestCode) {
+                return false;
+            }
+            try {
+                Purchase purchase = mLauncher.handleResult(resultCode, data);
+                postPurchaseSuccess(purchase);
+            } catch (BillingException e) {
+                postPurchaseError(e);
+            }
+            return true;
         }
-        try {
-            Purchase purchase = mLauncher.handleResult(resultCode, data);
-            postPurchaseSuccess(purchase, state.getHandler());
-        } catch (BillingException e) {
-            postOnError(e, state.getHandler());
-        }
-        return true;
     }
 
-    protected void executeInService(final ServiceConnection.Handler serviceHandler) {
-
-        final ServiceConnection conn = new ServiceConnection(mContext.getContext(),
-                mServiceIntent, mContext.getActionHandler());
-
-        conn.getServiceAsync(new ServiceConnection.Handler() {
-            @Override
-            public void onBind(final IInAppBillingService service) {
-                try {
-                    serviceHandler.onBind(service);
-                } finally {
-                    conn.unbindService();
-                }
-            }
-
-            @Override
-            public void onError() {
-                serviceHandler.onError();
-            }
-        });
-    }
-
-    protected void purchase(final Activity activity, final List<String> oldItemIds, final String itemId,
-                            final String developerPayload, final PurchaseHandler handler) {
-        executeInService(new ServiceConnection.Handler() {
-            @Override
-            public void onBind(IInAppBillingService service) {
-                // Before launch the IAB activity, we check if subscriptions are supported.
-                try {
-                    checkIsSupported(service);
-                    mLauncher.launch(service, activity, oldItemIds, itemId, developerPayload, handler);
-                } catch (BillingException e) {
-                    postOnError(e, handler);
-                }
-            }
-
-            @Override
-            public void onError() {
-                postBindServiceError(handler);
-            }
-        });
-    }
-
-    private PurchaseLaunchState unlockPurchaseLaunchState(int requestCode) {
-        // Check if it is a consumable or subscription
-        int code = mItemType.equals(Constants.ITEM_TYPE_INAPP)
-                ? Constants.CONSUMABLE_REQUEST_CODE
-                : Constants.SUBS_REQUEST_CODE;
-
-        if (requestCode != code) {
-            return null;
+    /**
+     * Release the handlers
+     * By releasing it will not cancel the purchase process
+     * since the purchase process is not controlled by the app.
+     * Once you release it, you MUST to create a new instance
+     */
+    public void release() {
+        synchronized (this) {
+            mPurchaseHandler = null;
         }
-        return mLauncher.tryUnlock();
+    }
+
+    protected void executeInServiceOnWorkThread(final ServiceBinder.Handler serviceHandler) {
+        executeInService(serviceHandler, mWorkHandler);
+    }
+
+    protected void executeInServiceOnMainThread(final ServiceBinder.Handler serviceHandler) {
+        executeInService(serviceHandler, mMainHandler);
     }
 
     protected void postEventHandler(Runnable r) {
-        android.os.Handler eventHandler = mContext.getEventHandler();
-        if (eventHandler != null) {
-            eventHandler.post(r);
+        if (mMainHandler != null) {
+            mMainHandler.post(r);
         }
+    }
+
+    protected void postOnError(final BillingException e, final ErrorHandler handler) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (BaseProcessor.this) {
+                    if (handler != null) {
+                        handler.onError(e);
+                    }
+                }
+            }
+        });
+    }
+
+    protected void postBindServiceError(ErrorHandler handler) {
+        postOnError(new BillingException(
+                Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
+                Constants.ERROR_MSG_BIND_SERVICE_FAILED), handler);
+    }
+
+    private void executeInService(final ServiceBinder.Handler serviceHandler, Handler handler) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                final ServiceBinder conn = new ServiceBinder(mContext.getContext(), mServiceIntent);
+
+                conn.getServiceAsync(new ServiceBinder.Handler() {
+                    @Override
+                    public void onBind(IInAppBillingService service) {
+                        try {
+                            serviceHandler.onBind(service);
+                        } finally {
+                            conn.unbindService();
+                        }
+                    }
+
+                    @Override
+                    public void onError() {
+                        serviceHandler.onError();
+                    }
+                });
+            }
+        });
+    }
+
+    private void postPurchaseSuccess(final Purchase purchase) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (BaseProcessor.this) {
+                    if (mPurchaseHandler != null) {
+                        mPurchaseHandler.call(new PurchaseResponse(purchase, null));
+                    }
+                }
+            }
+        });
+    }
+
+    private void postPurchaseError(final BillingException e) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (BaseProcessor.this) {
+                    if (mPurchaseHandler != null) {
+                        mPurchaseHandler.call(new PurchaseResponse(null, e));
+                    }
+                }
+            }
+        });
+    }
+
+    private void postListSuccess(final ItemList itemList, final ItemDetailListHandler handler) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                handler.onSuccess(itemList);
+            }
+        });
+    }
+
+    private void postInventorySuccess(final PurchaseList purchaseList, final InventoryHandler handler) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                handler.onSuccess(purchaseList);
+            }
+        });
+    }
+
+    private void postActivityStartedSuccess(final StartActivityHandler handler) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                handler.onSuccess();
+            }
+        });
+    }
+
+    private void checkIfBillingIsSupported(IInAppBillingService service) throws BillingException {
+        if (isSupported(service)) {
+            return;
+        }
+        if (mItemType.equals(Constants.ITEM_TYPE_INAPP)) {
+            throw new BillingException(Constants.ERROR_PURCHASES_NOT_SUPPORTED,
+                    Constants.ERROR_MSG_PURCHASES_NOT_SUPPORTED);
+        }
+        throw new BillingException(Constants.ERROR_SUBSCRIPTIONS_NOT_SUPPORTED,
+                Constants.ERROR_MSG_SUBSCRIPTIONS_NOT_SUPPORTED);
     }
 
     private boolean isSupported(IInAppBillingService service) {
@@ -224,59 +332,5 @@ abstract class BaseProcessor {
                     "RemoteException while checking if the subscription is available.");
         }
         return false;
-    }
-
-    private void checkIsSupported(IInAppBillingService service) throws BillingException {
-        if (isSupported(service)) {
-            return;
-        }
-        if (mItemType.equals(Constants.ITEM_TYPE_INAPP)) {
-            throw new BillingException(Constants.ERROR_PURCHASES_NOT_SUPPORTED,
-                    Constants.ERROR_MSG_PURCHASES_NOT_SUPPORTED);
-        }
-        throw new BillingException(Constants.ERROR_SUBSCRIPTIONS_NOT_SUPPORTED,
-                Constants.ERROR_MSG_SUBSCRIPTIONS_NOT_SUPPORTED);
-    }
-
-    private void postPurchaseSuccess(final Purchase purchase, final PurchaseHandler handler) {
-        postEventHandler(new Runnable() {
-            @Override
-            public void run() {
-                handler.onSuccess(purchase);
-            }
-        });
-    }
-
-    private void postListSuccess(final ItemList itemList, final ItemListHandler handler) {
-        postEventHandler(new Runnable() {
-            @Override
-            public void run() {
-                handler.onSuccess(itemList);
-            }
-        });
-    }
-
-    private void postInventorySuccess(final PurchaseList purchaseList, final InventoryHandler handler) {
-        postEventHandler(new Runnable() {
-            @Override
-            public void run() {
-                handler.onSuccess(purchaseList);
-            }
-        });
-    }
-
-    protected void postBindServiceError(ErrorHandler handler) {
-        postOnError(new BillingException(
-                Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
-                Constants.ERROR_MSG_BIND_SERVICE_FAILED), handler);
-    }
-
-    protected void postOnError(final BillingException e, final ErrorHandler handler) {
-        postEventHandler(new Runnable() {
-            @Override
-            public void run() {
-                handler.onError(e);
-            }
-        });
     }
 }

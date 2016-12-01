@@ -53,39 +53,31 @@ class ItemGetter {
      */
     public ItemList get(IInAppBillingService service, String itemType,
                         ArrayList<String> itemIdList) throws BillingException {
-        ItemList itemList = new ItemList();
         Bundle bundle = new Bundle();
         bundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIdList);
         try {
             Bundle skuDetails = service.getSkuDetails(mApiVersion, mPackageName, itemType, bundle);
-
-            checkResponse(skuDetails, itemList);
+            return getItemsFromResponse(skuDetails);
         } catch (RemoteException e) {
             throw new BillingException(Constants.ERROR_REMOTE_EXCEPTION, e.getMessage());
         }
-        return itemList;
     }
 
-    private void checkResponse(Bundle skuDetails,
-                               ItemList itemList) throws BillingException {
+    private ItemList getItemsFromResponse(Bundle skuDetails) throws BillingException {
         int response = skuDetails.getInt(Constants.RESPONSE_CODE);
         if (response == Constants.BILLING_RESPONSE_RESULT_OK) {
-            checkDetailsList(skuDetails, itemList);
+            return getDetailsList(skuDetails);
         } else {
             throw new BillingException(response, Constants.ERROR_MSG_GET_SKU_DETAILS);
         }
     }
 
-    private void checkDetailsList(Bundle skuDetails,
-                                  ItemList itemList) throws BillingException {
+    private ItemList getDetailsList(Bundle skuDetails) throws BillingException {
+        ItemList itemList = new ItemList();
         List<String> detailsList = skuDetails.getStringArrayList(Constants.RESPONSE_DETAILS_LIST);
-        if (detailsList != null) {
-            parseResponse(detailsList, itemList);
+        if (detailsList == null) {
+            return itemList;
         }
-    }
-
-    private void parseResponse(List<String> detailsList,
-                               ItemList itemList) throws BillingException {
         for (String response : detailsList) {
             try {
                 Item product = Item.parseJson(response);
@@ -94,5 +86,6 @@ class ItemGetter {
                 throw new BillingException(Constants.ERROR_BAD_RESPONSE, e.getMessage());
             }
         }
+        return itemList;
     }
 }

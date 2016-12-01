@@ -19,48 +19,45 @@
 package jp.alessandro.android.iab;
 
 import android.app.Activity;
+import android.os.Handler;
 
 import java.util.List;
 
 import jp.alessandro.android.iab.handler.PurchaseHandler;
+import jp.alessandro.android.iab.handler.StartActivityHandler;
 
-public class SubscriptionProcessor extends BaseProcessor {
+class SubscriptionProcessor extends BaseProcessor {
 
-    public SubscriptionProcessor(BillingContext context) {
-        super(context, Constants.ITEM_TYPE_SUBSCRIPTION);
-    }
+    public SubscriptionProcessor(BillingContext context, PurchaseHandler purchaseHandler,
+                                 Handler workHandler, Handler mainHandler) {
 
-    /**
-     * Purchase a subscription
-     *
-     * @param activity         activity calling this method
-     * @param itemId           subscription item id
-     * @param developerPayload optional argument to be sent back with the purchase information. It helps to identify the user
-     * @param handler          callback called asynchronously
-     */
-    public void purchase(Activity activity, String itemId,
-                         String developerPayload, PurchaseHandler handler) {
-        super.purchase(activity, null, itemId, developerPayload, handler);
+        super(context, Constants.ITEM_TYPE_SUBSCRIPTION, purchaseHandler, workHandler, mainHandler);
     }
 
     /**
      * Updates a subscription (Upgrade / Downgrade)
+     * This method MUST be called from UI Thread
      * This can only be done on API version 5
      * Even if you set up to use the API version 3
      * It will automatically use API version 5
      * IMPORTANT: In some devices it may not work
      *
      * @param activity         activity calling this method
+     * @param requestCode
      * @param oldItemIds       a list of item ids to be updated
      * @param itemId           new subscription item id
      * @param developerPayload optional argument to be sent back with the purchase information. It helps to identify the user
      * @param handler          callback called asynchronously
      */
-    public void update(Activity activity, List<String> oldItemIds,
-                       String itemId, String developerPayload, PurchaseHandler handler) {
+    public void update(Activity activity,
+                       int requestCode,
+                       List<String> oldItemIds,
+                       String itemId,
+                       String developerPayload,
+                       StartActivityHandler handler) {
         if (oldItemIds == null || oldItemIds.isEmpty()) {
-            throw new RuntimeException(Constants.ERROR_MSG_UPDATE_ARGUMENT_MISSING);
+            throw new IllegalArgumentException(Constants.ERROR_MSG_UPDATE_ARGUMENT_MISSING);
         }
-        super.purchase(activity, oldItemIds, itemId, developerPayload, handler);
+        super.startPurchase(activity, requestCode, oldItemIds, itemId, developerPayload, handler);
     }
 }

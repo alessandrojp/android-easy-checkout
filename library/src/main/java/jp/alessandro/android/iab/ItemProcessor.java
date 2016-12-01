@@ -18,7 +18,7 @@
 
 package jp.alessandro.android.iab;
 
-import android.app.Activity;
+import android.os.Handler;
 import android.os.RemoteException;
 import android.text.TextUtils;
 
@@ -27,23 +27,12 @@ import com.android.vending.billing.IInAppBillingService;
 import jp.alessandro.android.iab.handler.ConsumeItemHandler;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 
-public class ItemProcessor extends BaseProcessor {
+class ItemProcessor extends BaseProcessor {
 
-    public ItemProcessor(BillingContext context) {
-        super(context, Constants.ITEM_TYPE_INAPP);
-    }
+    public ItemProcessor(BillingContext context, PurchaseHandler purchaseHandler,
+                         Handler workHandler, Handler mainHandler) {
 
-    /**
-     * Purchases a consumable/non-consumable item
-     *
-     * @param activity         activity calling this method
-     * @param itemId           consumable/non-consumable item id
-     * @param developerPayload optional argument to be sent back with the purchase information. It helps to identify the user
-     * @param handler          callback called asynchronously
-     */
-    public void purchase(final Activity activity, final String itemId,
-                         final String developerPayload, PurchaseHandler handler) {
-        super.purchase(activity, null, itemId, developerPayload, handler);
+        super(context, Constants.ITEM_TYPE_INAPP, purchaseHandler, workHandler, mainHandler);
     }
 
     /**
@@ -54,7 +43,7 @@ public class ItemProcessor extends BaseProcessor {
      * @param handler callback called asynchronously
      */
     public void consume(final String itemId, final ConsumeItemHandler handler) {
-        executeInService(new ServiceConnection.Handler() {
+        executeInServiceOnWorkThread(new ServiceBinder.Handler() {
             @Override
             public void onBind(IInAppBillingService service) {
                 try {
@@ -101,7 +90,9 @@ public class ItemProcessor extends BaseProcessor {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                handler.onSuccess(itemId);
+                if (handler != null) {
+                    handler.onSuccess(itemId);
+                }
             }
         });
     }
