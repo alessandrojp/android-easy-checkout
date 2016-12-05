@@ -36,7 +36,6 @@ import jp.alessandro.android.iab.handler.InventoryHandler;
 import jp.alessandro.android.iab.handler.ItemDetailListHandler;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.StartActivityHandler;
-import jp.alessandro.android.iab.response.PurchaseResponse;
 import rx.Emitter;
 import rx.Observable;
 import rx.functions.Action1;
@@ -73,15 +72,15 @@ public class BillingProcessorObservable {
      * @param purchaseType     IN_APP or SUBSCRIPTION
      * @param developerPayload optional argument to be sent back with the purchase information. It helps to identify the user
      */
-    public Observable<PurchaseResponse> startPurchase(final Activity activity,
-                                                      final int requestCode,
-                                                      final String itemId,
-                                                      final PurchaseType purchaseType,
-                                                      final String developerPayload) {
+    public Observable<Void> startPurchase(final Activity activity,
+                                          final int requestCode,
+                                          final String itemId,
+                                          final PurchaseType purchaseType,
+                                          final String developerPayload) {
 
-        return Observable.fromEmitter(new Action1<Emitter<PurchaseResponse>>() {
+        return Observable.fromEmitter(new Action1<Emitter<Void>>() {
             @Override
-            public void call(final Emitter<PurchaseResponse> emitter) {
+            public void call(final Emitter<Void> emitter) {
                 mBillingProcessor.startPurchase(activity,
                         requestCode,
                         itemId,
@@ -117,15 +116,15 @@ public class BillingProcessorObservable {
      * @param itemId           new subscription item id
      * @param developerPayload optional argument to be sent back with the purchase information. It helps to identify the user
      */
-    public Observable<PurchaseResponse> updateSubscription(final Activity activity,
-                                                           final int requestCode,
-                                                           final List<String> oldItemIds,
-                                                           final String itemId,
-                                                           final String developerPayload) {
+    public Observable<Void> updateSubscription(final Activity activity,
+                                               final int requestCode,
+                                               final List<String> oldItemIds,
+                                               final String itemId,
+                                               final String developerPayload) {
 
-        return Observable.fromEmitter(new Action1<Emitter<PurchaseResponse>>() {
+        return Observable.fromEmitter(new Action1<Emitter<Void>>() {
             @Override
-            public void call(final Emitter<PurchaseResponse> emitter) {
+            public void call(final Emitter<Void> emitter) {
                 mBillingProcessor.updateSubscription(activity, requestCode, oldItemIds, itemId, developerPayload,
                         new StartActivityHandler() {
                             @Override
@@ -150,14 +149,14 @@ public class BillingProcessorObservable {
      *
      * @param itemId consumable item id
      */
-    public Observable<Void> consume(final String itemId) {
-        return Observable.fromEmitter(new Action1<Emitter<Void>>() {
+    public Observable<String> consume(final String itemId) {
+        return Observable.fromEmitter(new Action1<Emitter<String>>() {
             @Override
-            public void call(final Emitter<Void> emitter) {
+            public void call(final Emitter<String> emitter) {
                 mBillingProcessor.consume(itemId, new ConsumeItemHandler() {
                     @Override
                     public void onSuccess(String itemId) {
-                        emitter.onNext(null);
+                        emitter.onNext(itemId);
                         emitter.onCompleted();
                     }
 
@@ -234,7 +233,7 @@ public class BillingProcessorObservable {
      * @param requestCode
      * @param resultCode
      * @param data
-     * @return
+     * @return true if the result was processed in the library
      */
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
         return mBillingProcessor.onActivityResult(requestCode, resultCode, data);

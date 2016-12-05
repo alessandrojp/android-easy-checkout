@@ -57,9 +57,15 @@ public class Purchase implements Parcelable {
 
     public static Purchase parseJson(String json, String signature) throws JSONException {
         JSONObject obj = new JSONObject(json);
-        return new Purchase(json, obj.optString("orderId"), obj.optString("packageName"),
-                obj.optString("productId"), obj.optLong("purchaseTime"), obj.optInt("purchaseState"),
-                obj.optString("developerPayload"), obj.optString("token", obj.optString("purchaseToken")),
+        return new Purchase(
+                json,
+                obj.optString("orderId"),
+                obj.optString("packageName"),
+                obj.optString("productId"),
+                obj.optLong("purchaseTime"),
+                obj.optInt("purchaseState"),
+                obj.optString("developerPayload"),
+                obj.optString("token", obj.optString("purchaseToken")),
                 obj.optBoolean("autoRenewing"), signature);
     }
 

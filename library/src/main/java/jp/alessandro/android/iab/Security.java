@@ -49,7 +49,7 @@ public class Security {
     /**
      * Verifies that the data was signed with the given signature, and returns
      * the verified purchase. The data is in JSON format and signed
-     * with a private key. The data also contains the {@link PurchaseState}
+     * with a private key. The data also contains the purchase state
      * and product ID of the purchase.
      *
      * @param purchaseData    the purchase data used for debug validation.

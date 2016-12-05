@@ -52,8 +52,14 @@ public class Item implements Parcelable {
 
     public static Item parseJson(String json) throws JSONException {
         JSONObject obj = new JSONObject(json);
-        return new Item(json, obj.optString("productId"), obj.optString("type"), obj.optString("title"),
-                obj.optString("description"), obj.optString("price_currency_code"), obj.optString("price"),
+        return new Item(
+                json,
+                obj.optString("productId"),
+                obj.optString("type"),
+                obj.optString("title"),
+                obj.optString("description"),
+                obj.optString("price_currency_code"),
+                obj.optString("price"),
                 obj.optLong("price_amount_micros"));
     }
 

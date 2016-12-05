@@ -191,16 +191,14 @@ public class BillingProcessor {
      * @param requestCode
      * @param resultCode
      * @param data
-     * @return
+     * @return true if the result was processed in the library
      */
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
         synchronized (this) {
             checkIfIsNotReleased();
             checkIsMainThread();
-            if (mSubscriptionProcessor.onActivityResult(requestCode, resultCode, data)) {
-                return true;
-            }
-            if (mItemProcessor.onActivityResult(requestCode, resultCode, data)) {
+            if (mSubscriptionProcessor.onActivityResult(requestCode, resultCode, data)
+                    || mItemProcessor.onActivityResult(requestCode, resultCode, data)) {
                 return true;
             }
             return false;

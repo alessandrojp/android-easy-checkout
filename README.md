@@ -1,12 +1,14 @@
 # Android In-App Billing Library
+![API](https://img.shields.io/badge/API-9%2B-brightgreen.svg?style=flat)
 [![Build Status](https://travis-ci.org/alessandrojp/android-inapp-billing.svg)](https://travis-ci.org/alessandrojp/android-inapp-billing)
+[![Bintray](https://img.shields.io/bintray/v/alessandrojp/maven/android-inapp-billing.svg)](https://bintray.com/alessandrojp/maven/android-inapp-billing/view)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 Fast and easy to use Android In-app Billing Library.
 
 This library supports both non-consumable/consumable items and upgrading/downgrading of subscriptions. 
 
-Also it supports [RxJava](https://github.com/alessandrojp/android-inapp-billing/).
+Also it supports [RxJava](https://github.com/alessandrojp/android-inapp-billing/tree/master/rxjava-adapter).
 
 NOTE: Upgrade/Downgrade of subscriptions are only available in the api version 5.
 You can still set the api version 3 for other actions in the library.
@@ -14,18 +16,18 @@ The api version 5 automatically will be used only in this case.
 
 # Let's get started
 ### Installation
-* Supports Android 2.2 SDK or higher.
+* Supports Android 2.3 SDK or higher.
 
-* For Eclipse users, download the latest jar version from [here](https://github.com/alessandrojp/android-inapp-billing/releases) and add it as a dependency
+* For Eclipse users, download the latest jar version from [here](https://bintray.com/alessandrojp/maven/download_file?file_path=jp%2Falessandro%2Fandroid-inapp-billing%2F1.0.0%2Fandroid-inapp-billing-1.0.0.jar) and add it as a dependency
 
 * For Gradle users, add this into your build.gradle file:
 
   ```groovy
   repositories {
-      mavenCentral()
+      jcenter()
   }
   dependencies {
-     compile 'jp.alessandro.android.iab:library:1.0.+'
+     compile 'jp.alessandro:android-inapp-billing:1.0.0'
   }
   ```
 
@@ -35,7 +37,7 @@ The api version 5 automatically will be used only in this case.
     <uses-permission android:name="com.android.vending.BILLING" />
   ```
 
-* If you use Proguard to obfuscate your code, you must add the following lines to your Proguard configuration file:
+* If you use Proguard to obfuscate your code, you must add the following line to your Proguard configuration file:
   ```xml
   -keep class com.android.vending.billing.**
   ```
