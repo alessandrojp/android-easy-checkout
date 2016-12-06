@@ -51,8 +51,8 @@ class ItemGetter {
      * @return
      * @throws BillingException
      */
-    public ItemList get(IInAppBillingService service, String itemType,
-                        ArrayList<String> itemIdList) throws BillingException {
+    public ItemDetailList get(IInAppBillingService service, String itemType,
+                              ArrayList<String> itemIdList) throws BillingException {
         Bundle bundle = new Bundle();
         bundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIdList);
         try {
@@ -63,7 +63,7 @@ class ItemGetter {
         }
     }
 
-    private ItemList getItemsFromResponse(Bundle skuDetails) throws BillingException {
+    private ItemDetailList getItemsFromResponse(Bundle skuDetails) throws BillingException {
         int response = skuDetails.getInt(Constants.RESPONSE_CODE);
         if (response == Constants.BILLING_RESPONSE_RESULT_OK) {
             return getDetailsList(skuDetails);
@@ -72,20 +72,20 @@ class ItemGetter {
         }
     }
 
-    private ItemList getDetailsList(Bundle skuDetails) throws BillingException {
-        ItemList itemList = new ItemList();
+    private ItemDetailList getDetailsList(Bundle skuDetails) throws BillingException {
+        ItemDetailList itemDetailList = new ItemDetailList();
         List<String> detailsList = skuDetails.getStringArrayList(Constants.RESPONSE_DETAILS_LIST);
         if (detailsList == null) {
-            return itemList;
+            return itemDetailList;
         }
         for (String response : detailsList) {
             try {
                 Item product = Item.parseJson(response);
-                itemList.put(product);
+                itemDetailList.put(product);
             } catch (JSONException e) {
                 throw new BillingException(Constants.ERROR_BAD_RESPONSE, e.getMessage());
             }
         }
-        return itemList;
+        return itemDetailList;
     }
 }

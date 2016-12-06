@@ -18,9 +18,9 @@
 
 package jp.alessandro.android.iab.handler;
 
-import jp.alessandro.android.iab.ItemList;
+import jp.alessandro.android.iab.ItemDetailList;
 
 public interface ItemDetailListHandler extends ErrorHandler {
 
-    void onSuccess(ItemList itemList);
+    void onSuccess(ItemDetailList itemDetailList);
 }

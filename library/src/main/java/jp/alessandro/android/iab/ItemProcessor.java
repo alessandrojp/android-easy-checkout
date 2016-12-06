@@ -48,7 +48,7 @@ class ItemProcessor extends BaseProcessor {
             public void onBind(IInAppBillingService service) {
                 try {
                     consume(service, getToken(service, itemId));
-                    postConsumeItemSuccess(itemId, handler);
+                    postConsumeItemSuccess(handler);
                 } catch (BillingException e) {
                     postOnError(e, handler);
                 }
@@ -86,12 +86,12 @@ class ItemProcessor extends BaseProcessor {
         }
     }
 
-    private void postConsumeItemSuccess(final String itemId, final ConsumeItemHandler handler) {
+    private void postConsumeItemSuccess(final ConsumeItemHandler handler) {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
                 if (handler != null) {
-                    handler.onSuccess(itemId);
+                    handler.onSuccess();
                 }
             }
         });

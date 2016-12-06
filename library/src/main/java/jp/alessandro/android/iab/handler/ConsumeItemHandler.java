@@ -20,5 +20,5 @@ package jp.alessandro.android.iab.handler;
 
 public interface ConsumeItemHandler extends ErrorHandler {
 
-    void onSuccess(String itemId);
+    void onSuccess();
 }

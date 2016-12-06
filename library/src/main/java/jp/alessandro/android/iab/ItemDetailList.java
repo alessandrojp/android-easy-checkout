@@ -23,11 +23,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ItemList {
+public class ItemDetailList {
 
     private final Map<String, Item> mMap = new LinkedHashMap<>();
 
-    public ItemList() {
+    public ItemDetailList() {
     }
 
     public boolean hasItemId(String itemId) {

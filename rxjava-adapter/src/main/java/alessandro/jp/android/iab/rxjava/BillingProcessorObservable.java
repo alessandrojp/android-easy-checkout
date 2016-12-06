@@ -28,7 +28,7 @@ import java.util.List;
 import jp.alessandro.android.iab.BillingContext;
 import jp.alessandro.android.iab.BillingException;
 import jp.alessandro.android.iab.BillingProcessor;
-import jp.alessandro.android.iab.ItemList;
+import jp.alessandro.android.iab.ItemDetailList;
 import jp.alessandro.android.iab.PurchaseList;
 import jp.alessandro.android.iab.PurchaseType;
 import jp.alessandro.android.iab.handler.ConsumeItemHandler;
@@ -149,14 +149,14 @@ public class BillingProcessorObservable {
      *
      * @param itemId consumable item id
      */
-    public Observable<String> consume(final String itemId) {
-        return Observable.fromEmitter(new Action1<Emitter<String>>() {
+    public Observable<Void> consume(final String itemId) {
+        return Observable.fromEmitter(new Action1<Emitter<Void>>() {
             @Override
-            public void call(final Emitter<String> emitter) {
+            public void call(final Emitter<Void> emitter) {
                 mBillingProcessor.consume(itemId, new ConsumeItemHandler() {
                     @Override
-                    public void onSuccess(String itemId) {
-                        emitter.onNext(itemId);
+                    public void onSuccess() {
+                        emitter.onNext(null);
                         emitter.onCompleted();
                     }
 
@@ -205,14 +205,14 @@ public class BillingProcessorObservable {
      * @param purchaseType IN_APP or SUBSCRIPTION
      * @param itemIds      list of SKU ids to be loaded
      */
-    public Observable<ItemList> getItemDetailList(final PurchaseType purchaseType, final ArrayList<String> itemIds) {
-        return Observable.fromEmitter(new Action1<Emitter<ItemList>>() {
+    public Observable<ItemDetailList> getItemDetailList(final PurchaseType purchaseType, final ArrayList<String> itemIds) {
+        return Observable.fromEmitter(new Action1<Emitter<ItemDetailList>>() {
             @Override
-            public void call(final Emitter<ItemList> emitter) {
+            public void call(final Emitter<ItemDetailList> emitter) {
                 mBillingProcessor.getItemDetailList(purchaseType, itemIds, new ItemDetailListHandler() {
                     @Override
-                    public void onSuccess(ItemList itemList) {
-                        emitter.onNext(itemList);
+                    public void onSuccess(ItemDetailList itemDetailList) {
+                        emitter.onNext(itemDetailList);
                         emitter.onCompleted();
                     }
 

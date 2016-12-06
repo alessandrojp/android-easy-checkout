@@ -115,7 +115,7 @@ abstract class BaseProcessor {
             public void onBind(IInAppBillingService service) {
                 try {
                     ItemGetter getter = new ItemGetter(mContext);
-                    ItemList details = getter.get(service, mItemType, itemIds);
+                    ItemDetailList details = getter.get(service, mItemType, itemIds);
                     postListSuccess(details, handler);
                 } catch (BillingException e) {
                     postOnError(e, handler);
@@ -277,11 +277,11 @@ abstract class BaseProcessor {
         });
     }
 
-    private void postListSuccess(final ItemList itemList, final ItemDetailListHandler handler) {
+    private void postListSuccess(final ItemDetailList itemDetailList, final ItemDetailListHandler handler) {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                handler.onSuccess(itemList);
+                handler.onSuccess(itemDetailList);
             }
         });
     }
