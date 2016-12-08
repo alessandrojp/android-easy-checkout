@@ -16,7 +16,7 @@
  * Contact email: alessandro@alessandro.jp
  */
 
-package alessandro.jp.android.iab.rxjava;
+package jp.alessandro.android.iab.rxjava;
 
 import android.app.Activity;
 import android.content.Context;

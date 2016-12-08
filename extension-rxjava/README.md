@@ -1,6 +1,6 @@
-# RxJava adapter for Android In-App Billing Library
-[![Build Status](https://travis-ci.org/alessandrojp/android-inapp-billing.svg)](https://travis-ci.org/alessandrojp/android-inapp-billing)
-[![Bintray](https://img.shields.io/bintray/v/alessandrojp/maven/android-inapp-billing.svg)](https://bintray.com/alessandrojp/maven/android-inapp-billing/view)
+# RxJava adapter for Easy Checkout Library
+[![Build Status](https://travis-ci.org/alessandrojp/easy-checkout.svg)](https://travis-ci.org/alessandrojp/easy-checkout)
+[![Bintray](https://img.shields.io/bintray/v/alessandrojp/android/easy-checkout.svg)](https://bintray.com/alessandrojp/android/easy-checkout/view)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 
@@ -12,14 +12,18 @@ repositories {
     jcenter()
 }
 dependencies {
-    compile 'jp.alessandro:android-inapp-billing:1.0.0'
-    compile 'jp.alessandro:android-inapp-billing-rxjava-adapter:1.0.0'
+    compile 'jp.alessandro.android:easy-checkout:vX.X.X'
+    compile 'jp.alessandro.android:easy-checkout-extension-rxjava:vX.X.X'
 
     // RxJava
     compile 'io.reactivex:rxjava:1.2.3'
     compie 'io.reactivex:rxandroid:1.2.1'
 }
 ```
+where vX.X.X is the your preferred version. For the latest version, please see the project's [Releases][]. You can also see more details on [Bintray][].
+
+[Releases]: https://github.com/alessandrojp/easy-checkout/releases
+[Bintray]: https://bintray.com/alessandrojp/android/easy-checkout/view
 
 * This library requires `com.android.vending.BILLING` permission. Usually, permissions are merged automatically during the manifest merging step, but you can add it into the *AndroidManifest.xml* of your application.
 ```xml
@@ -49,6 +53,7 @@ BillingContext context = new BillingContext(
             new SystemLogger() // If don't want to check the logs, you can just give null
 ```
 
+### Sample (Sample App coming soon)
 * See the sample of how to use it:
 
 ```java

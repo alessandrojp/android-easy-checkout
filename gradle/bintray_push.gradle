@@ -44,8 +44,8 @@ bintray {
     publications = ['mavenJava']
 
     pkg {
-        repo = 'maven' // Bintray repository name
-        name = 'android-inapp-billing' // Bintray package name
+        repo = 'android' // Bintray repository name
+        name = 'easy-checkout' // Bintray package name
         desc = POM_DESCRIPTION
         publish = true
         publicDownloadNumbers = true

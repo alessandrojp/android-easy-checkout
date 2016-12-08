@@ -1,14 +1,14 @@
-# Android In-App Billing Library
+# Easy Checkout Library (Android In-App Billing v3 and v5)
 ![API](https://img.shields.io/badge/API-9%2B-brightgreen.svg?style=flat)
-[![Build Status](https://travis-ci.org/alessandrojp/android-inapp-billing.svg)](https://travis-ci.org/alessandrojp/android-inapp-billing)
-[![Bintray](https://img.shields.io/bintray/v/alessandrojp/maven/android-inapp-billing.svg)](https://bintray.com/alessandrojp/maven/android-inapp-billing/view)
+[![Build Status](https://travis-ci.org/alessandrojp/easy-checkout.svg)](https://travis-ci.org/alessandrojp/easy-checkout)
+[![Bintray](https://img.shields.io/bintray/v/alessandrojp/android/easy-checkout.svg)](https://bintray.com/alessandrojp/android/easy-checkout/view)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
-Fast and easy use of Android In-App Billing with RxJava support.
+Fast and easy checkout library (Android In-App Billing) for Android apps with RxJava support.
 
 This library supports both non-consumable/consumable items and upgrading/downgrading of subscriptions. 
 
-For **RxJava** please check [here](https://github.com/alessandrojp/android-inapp-billing/tree/master/rxjava-adapter).
+For **RxJava** please check [here](https://github.com/alessandrojp/easy-checkout/tree/master/extension-rxjava).
 
 NOTE: Upgrade/Downgrade of subscriptions are only available in the api version 5.
 You can still set the api version 3 for other actions in the library.
@@ -18,18 +18,22 @@ The api version 5 automatically will be used only in this case.
 ### Installation
 * Supports Android 2.3 SDK or higher.
 
-* For Eclipse users, download the latest jar version from [here](https://bintray.com/alessandrojp/maven/download_file?file_path=jp%2Falessandro%2Fandroid-inapp-billing%2F1.0.0%2Fandroid-inapp-billing-1.0.0.jar) and add it as a dependency
+* For Eclipse users, download the latest jar version on [Bintray][] and add it as a dependency.
 
 * For Gradle users, add this into your build.gradle file:
 
 ```groovy
 repositories {
-  jcenter()
+    jcenter()
 }
 dependencies {
- compile 'jp.alessandro:android-inapp-billing:1.0.0'
+    compile 'jp.alessandro.android:easy-checkout:vX.X.X'
 }
 ```
+where vX.X.X is the your preferred version. For the latest version, please see the project's [Releases][]. You can also see more details on [Bintray][].
+
+[Releases]: https://github.com/alessandrojp/easy-checkout/releases
+[Bintray]: https://bintray.com/alessandrojp/android/easy-checkout/view
 
 * This library requires `com.android.vending.BILLING` permission. Usually, permissions are merged automatically during the manifest merging step, but you can add it into the *AndroidManifest.xml* of your application.
 
@@ -60,6 +64,7 @@ BillingContext context = new BillingContext(
             new SystemLogger() // If don't want to check the logs, you can just give null
 ```
 
+### Sample (Sample App coming soon)
 * See the sample of how to use it:
 
 ```java
