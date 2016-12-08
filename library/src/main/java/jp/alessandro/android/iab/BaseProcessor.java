@@ -22,6 +22,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.RemoteException;
+import android.util.SparseArray;
 
 import com.android.vending.billing.IInAppBillingService;
 
@@ -41,7 +42,7 @@ abstract class BaseProcessor {
 
     protected final BillingContext mContext;
     private final String mItemType;
-    private final PurchaseFlowLauncher mLauncher;
+    private final SparseArray<PurchaseFlowLauncher> mPurchaseFlows;
     private final Logger mLogger;
     private final Intent mServiceIntent;
     private final Handler mWorkHandler;
@@ -57,7 +58,7 @@ abstract class BaseProcessor {
         mPurchaseHandler = purchaseHandler;
         mWorkHandler = workHandler;
         mMainHandler = mainHandler;
-        mLauncher = new PurchaseFlowLauncher(mContext, mItemType);
+        mPurchaseFlows = new SparseArray<>();
         mLogger = context.getLogger();
 
         mServiceIntent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
@@ -79,27 +80,27 @@ abstract class BaseProcessor {
                               final List<String> oldItemIds, final String itemId,
                               final String developerPayload, final StartActivityHandler handler) {
 
-        synchronized (this) {
-            executeInServiceOnMainThread(new ServiceBinder.Handler() {
-                @Override
-                public void onBind(IInAppBillingService service) {
-                    try {
-                        // Before launch the IAB activity, we check if subscriptions are supported.
-                        checkIfBillingIsSupported(service);
-                        mLauncher.launch(service, activity, requestCode, oldItemIds, itemId, developerPayload);
+        executeInServiceOnMainThread(new ServiceBinder.Handler() {
+            @Override
+            public void onBind(IInAppBillingService service) {
+                try {
+                    // Before launch the IAB activity, we check if subscriptions are supported.
+                    checkIfBillingIsSupported(service);
+                    PurchaseFlowLauncher launcher = createPurchaseFlowLauncher(requestCode);
+                    mPurchaseFlows.append(requestCode, launcher);
+                    launcher.launch(service, activity, requestCode, oldItemIds, itemId, developerPayload);
 
-                        postActivityStartedSuccess(handler);
-                    } catch (BillingException e) {
-                        postOnError(e, handler);
-                    }
+                    postActivityStartedSuccess(handler);
+                } catch (BillingException e) {
+                    postOnError(e, handler);
                 }
+            }
 
-                @Override
-                public void onError() {
-                    postBindServiceError(handler);
-                }
-            });
-        }
+            @Override
+            public void onError() {
+                postBindServiceError(handler);
+            }
+        });
     }
 
     /**
@@ -167,18 +168,19 @@ abstract class BaseProcessor {
      * @return
      */
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
-        synchronized (this) {
-            if (mLauncher.getRequestCode() != requestCode) {
-                return false;
-            }
-            try {
-                Purchase purchase = mLauncher.handleResult(resultCode, data);
-                postPurchaseSuccess(purchase);
-            } catch (BillingException e) {
-                postPurchaseError(e);
-            }
-            return true;
+        PurchaseFlowLauncher launcher = mPurchaseFlows.get(requestCode);
+        if (launcher == null) {
+            return false;
         }
+        try {
+            Purchase purchase = launcher.handleResult(requestCode, resultCode, data);
+            postPurchaseSuccess(purchase);
+        } catch (BillingException e) {
+            postPurchaseError(e);
+        } finally {
+            mPurchaseFlows.delete(requestCode);
+        }
+        return true;
     }
 
     /**
@@ -188,9 +190,8 @@ abstract class BaseProcessor {
      * Once you release it, you MUST to create a new instance
      */
     public void release() {
-        synchronized (this) {
-            mPurchaseHandler = null;
-        }
+        mPurchaseHandler = null;
+        mPurchaseFlows.clear();
     }
 
     protected void executeInServiceOnWorkThread(final ServiceBinder.Handler serviceHandler) {
@@ -211,10 +212,8 @@ abstract class BaseProcessor {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                synchronized (BaseProcessor.this) {
-                    if (handler != null) {
-                        handler.onError(e);
-                    }
+                if (handler != null) {
+                    handler.onError(e);
                 }
             }
         });
@@ -224,6 +223,15 @@ abstract class BaseProcessor {
         postOnError(new BillingException(
                 Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
                 Constants.ERROR_MSG_BIND_SERVICE_FAILED), handler);
+    }
+
+    private PurchaseFlowLauncher createPurchaseFlowLauncher(int requestCode) throws BillingException {
+        PurchaseFlowLauncher launcher = mPurchaseFlows.get(requestCode);
+        if (launcher != null) {
+            String message = String.format(Locale.US, Constants.ERROR_MSG_PURCHASE_FLOW_ALREADY_EXISTS, requestCode);
+            throw new BillingException(Constants.ERROR_PURCHASE_FLOW_ALREADY_EXISTS, message);
+        }
+        return new PurchaseFlowLauncher(mContext, mItemType);
     }
 
     private void executeInService(final ServiceBinder.Handler serviceHandler, Handler handler) {
@@ -255,10 +263,8 @@ abstract class BaseProcessor {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                synchronized (BaseProcessor.this) {
-                    if (mPurchaseHandler != null) {
-                        mPurchaseHandler.call(new PurchaseResponse(purchase, null));
-                    }
+                if (mPurchaseHandler != null) {
+                    mPurchaseHandler.call(new PurchaseResponse(purchase, null));
                 }
             }
         });
@@ -268,10 +274,8 @@ abstract class BaseProcessor {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                synchronized (BaseProcessor.this) {
-                    if (mPurchaseHandler != null) {
-                        mPurchaseHandler.call(new PurchaseResponse(null, e));
-                    }
+                if (mPurchaseHandler != null) {
+                    mPurchaseHandler.call(new PurchaseResponse(null, e));
                 }
             }
         });

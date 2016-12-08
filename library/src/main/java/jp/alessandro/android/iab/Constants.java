@@ -24,8 +24,6 @@ public class Constants {
     }
 
     // ******************** BILLING SETTINGS ******************** //
-    static final int CONSUMABLE_REQUEST_CODE = 1001;
-    static final int SUBS_REQUEST_CODE = 1002;
     static final String ITEM_TYPE_INAPP = "inapp";
     static final String ITEM_TYPE_SUBSCRIPTION = "subs";
     static final String VENDING_PACKAGE = "com.android.vending";
@@ -76,7 +74,7 @@ public class Constants {
     // ******************** BILLING INTERNAL ERROR CODES ******************** //
     public static final int ERROR_REMOTE_EXCEPTION = -101;
     public static final int ERROR_BAD_RESPONSE = -102;
-    public static final int ERROR_IS_ALREADY_LAUNCHING = -103;
+    public static final int ERROR_PURCHASE_FLOW_ALREADY_EXISTS = -103;
     public static final int ERROR_LOST_CONTEXT = -104;
     public static final int ERROR_PURCHASE_DATA = -105;
     public static final int ERROR_PENDING_INTENT = -106;
@@ -100,7 +98,7 @@ public class Constants {
     public static final String ERROR_MSG_GET_PURCHASES_SIGNATURE = "Purchase or Signature is null.";
     public static final String ERROR_MSG_GET_PURCHASES_SIGNATURE_SIZE = "Purchase and Signature size are different.";
     public static final String ERROR_MSG_GET_SKU_DETAILS = "Error while trying to get sku details.";
-    public static final String ERROR_MSG_IS_ALREADY_LAUNCHING = "Billing intent is already launching.";
+    public static final String ERROR_MSG_PURCHASE_FLOW_ALREADY_EXISTS = "Purchase flow already exists. RequestCode: %d.";
     public static final String ERROR_MSG_LOST_CONTEXT = "Context is null.";
     public static final String ERROR_MSG_NULL_PURCHASE_DATA = "IAB returned null purchaseData or signature.";
     public static final String ERROR_MSG_PENDING_INTENT = "Pending intent is null. Probably a BUG.";
@@ -108,9 +106,10 @@ public class Constants {
     public static final String ERROR_MSG_PURCHASE_TOKEN = "Purchase token is null. Probably a BUG.";
     public static final String ERROR_MSG_PURCHASES_NOT_SUPPORTED = "Purchases are not supported on this device.";
     public static final String ERROR_MSG_RESULT_NULL_INTENT = "IAB result returned a null intent data.";
+    public static final String ERROR_MSG_RESULT_REQUEST_CODE_INVALID = "An invalid requestCode was given.";
     public static final String ERROR_MSG_RESULT_OK = "Problem while trying to purchase an item.";
     public static final String ERROR_MSG_RESULT_CANCELED = "The purchasing has canceled.";
-    public static final String ERROR_MSG_RESULT_UNKNOWN = "Unknown result code.";
+    public static final String ERROR_MSG_RESULT_UNKNOWN = "Unknown result code: %d";
     public static final String ERROR_MSG_SUBSCRIPTIONS_NOT_SUPPORTED = "Subscriptions are not supported on this device.";
     public static final String ERROR_MSG_UNABLE_TO_BUY = "Unable to buy the item.";
     public static final String ERROR_MSG_VERIFICATION_FAILED = "Signature verification has failed.";

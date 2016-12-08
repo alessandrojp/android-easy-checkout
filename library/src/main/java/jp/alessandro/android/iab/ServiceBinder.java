@@ -67,7 +67,7 @@ class ServiceBinder implements ServiceConnection {
 
     @Override
     public void onServiceDisconnected(ComponentName name) {
-        // no-op
+        setBinder(null);
     }
 
     private void setBinder(android.os.IBinder binder) {

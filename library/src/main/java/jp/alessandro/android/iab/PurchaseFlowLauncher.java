@@ -30,6 +30,7 @@ import com.android.vending.billing.IInAppBillingService;
 import org.json.JSONException;
 
 import java.util.List;
+import java.util.Locale;
 
 import jp.alessandro.android.iab.logger.Logger;
 
@@ -112,11 +113,11 @@ class PurchaseFlowLauncher {
 
     // ******************** CHECK BILLING ACTIVITY RESULT ******************** //
 
-    public int getRequestCode() {
-        return mRequestCode;
-    }
-
-    public Purchase handleResult(int resultCode, Intent data) throws BillingException {
+    public Purchase handleResult(int requestCode, int resultCode, Intent data) throws BillingException {
+        if (mRequestCode != requestCode) {
+            throw new BillingException(
+                    Constants.ERROR_BAD_RESPONSE, Constants.ERROR_MSG_RESULT_REQUEST_CODE_INVALID);
+        }
         if (data == null) {
             throw new BillingException(
                     Constants.ERROR_BAD_RESPONSE, Constants.ERROR_MSG_RESULT_NULL_INTENT);
@@ -143,7 +144,7 @@ class PurchaseFlowLauncher {
                 throw new BillingException(responseCode, Constants.ERROR_MSG_RESULT_CANCELED);
 
             default:
-                throw new BillingException(resultCode, Constants.ERROR_MSG_RESULT_UNKNOWN);
+                throw new BillingException(resultCode, String.format(Locale.US, Constants.ERROR_MSG_RESULT_UNKNOWN, resultCode));
         }
     }
 
