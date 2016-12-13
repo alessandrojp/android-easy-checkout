@@ -63,8 +63,8 @@ class ItemProcessor extends BaseProcessor {
 
     private String getToken(IInAppBillingService service, String itemId) throws BillingException {
         PurchaseGetter getter = new PurchaseGetter(mContext);
-        PurchaseList purchaseList = getter.get(service, Constants.ITEM_TYPE_INAPP);
-        Purchase purchase = purchaseList.getByPurchaseId(itemId);
+        Purchases purchases = getter.get(service, Constants.ITEM_TYPE_INAPP);
+        Purchase purchase = purchases.getByPurchaseId(itemId);
 
         if (purchase == null || TextUtils.isEmpty(purchase.getToken())) {
             throw new BillingException(Constants.ERROR_PURCHASE_DATA,

@@ -32,7 +32,7 @@ import java.util.List;
 
 import jp.alessandro.android.iab.handler.ConsumeItemHandler;
 import jp.alessandro.android.iab.handler.InventoryHandler;
-import jp.alessandro.android.iab.handler.ItemDetailListHandler;
+import jp.alessandro.android.iab.handler.ItemDetailsHandler;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.StartActivityHandler;
 
@@ -164,7 +164,7 @@ public class BillingProcessor {
     }
 
     /**
-     * Get a list of available SKUs details
+     * Get item details (SKU)
      * This will be executed from Work Thread
      * See http://developer.android.com/google/play/billing/billing_integrate.html#QueryDetails
      *
@@ -172,13 +172,13 @@ public class BillingProcessor {
      * @param itemIds      list of SKU ids to be loaded
      * @param handler      callback called asynchronously
      */
-    public void getItemDetailList(PurchaseType purchaseType, ArrayList<String> itemIds, ItemDetailListHandler handler) {
+    public void getItemDetails(PurchaseType purchaseType, ArrayList<String> itemIds, ItemDetailsHandler handler) {
         synchronized (this) {
             checkIfIsNotReleased();
             if (purchaseType == PurchaseType.SUBSCRIPTION) {
-                mSubscriptionProcessor.getItemDetailList(itemIds, handler);
+                mSubscriptionProcessor.getItemDetails(itemIds, handler);
             } else {
-                mItemProcessor.getItemDetailList(itemIds, handler);
+                mItemProcessor.getItemDetails(itemIds, handler);
             }
         }
     }

@@ -32,7 +32,7 @@ import java.util.Locale;
 
 import jp.alessandro.android.iab.handler.ErrorHandler;
 import jp.alessandro.android.iab.handler.InventoryHandler;
-import jp.alessandro.android.iab.handler.ItemDetailListHandler;
+import jp.alessandro.android.iab.handler.ItemDetailsHandler;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.StartActivityHandler;
 import jp.alessandro.android.iab.logger.Logger;
@@ -104,19 +104,19 @@ abstract class BaseProcessor {
     }
 
     /**
-     * Get a list of available SKUs details
+     * Get item details (SKU)
      * See http://developer.android.com/google/play/billing/billing_integrate.html#QueryDetails
      *
      * @param itemIds list of SKU ids to be loaded
      * @param handler callback called asynchronously
      */
-    public void getItemDetailList(final ArrayList<String> itemIds, final ItemDetailListHandler handler) {
+    public void getItemDetails(final ArrayList<String> itemIds, final ItemDetailsHandler handler) {
         executeInServiceOnWorkThread(new ServiceBinder.Handler() {
             @Override
             public void onBind(IInAppBillingService service) {
                 try {
                     ItemGetter getter = new ItemGetter(mContext);
-                    ItemDetailList details = getter.get(service, mItemType, itemIds);
+                    ItemDetails details = getter.get(service, mItemType, itemIds);
                     postListSuccess(details, handler);
                 } catch (BillingException e) {
                     postOnError(e, handler);
@@ -143,8 +143,8 @@ abstract class BaseProcessor {
             public void onBind(IInAppBillingService service) {
                 try {
                     PurchaseGetter getter = new PurchaseGetter(mContext);
-                    PurchaseList purchaseList = getter.get(service, mItemType);
-                    postInventorySuccess(purchaseList, handler);
+                    Purchases purchases = getter.get(service, mItemType);
+                    postInventorySuccess(purchases, handler);
                 } catch (BillingException e) {
                     postOnError(e, handler);
                 }
@@ -281,20 +281,20 @@ abstract class BaseProcessor {
         });
     }
 
-    private void postListSuccess(final ItemDetailList itemDetailList, final ItemDetailListHandler handler) {
+    private void postListSuccess(final ItemDetails itemDetails, final ItemDetailsHandler handler) {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                handler.onSuccess(itemDetailList);
+                handler.onSuccess(itemDetails);
             }
         });
     }
 
-    private void postInventorySuccess(final PurchaseList purchaseList, final InventoryHandler handler) {
+    private void postInventorySuccess(final Purchases purchases, final InventoryHandler handler) {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                handler.onSuccess(purchaseList);
+                handler.onSuccess(purchases);
             }
         });
     }

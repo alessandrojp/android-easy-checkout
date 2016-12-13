@@ -209,9 +209,9 @@ PurchaseType purchaseType = PurchaseType.IN_APP; // PurchaseType.SUBSCRIPTIONS f
 
 mBillingProcessor.getInventory(purchaseType, new InventoryHandler() {
     @Override
-    public void onSuccess(PurchaseList purchaseList) {
+    public void onSuccess(Purchases purchases) {
         // Do your stuff with the list of purchases
-        List<Purchase> purchases = purchaseList.getAll();
+        List<Purchase> purchaseList = purchases.getAll();
     }
 
     @Override
@@ -231,11 +231,11 @@ ArrayList<String> itemIds = new ArrayList<>();
 itemIds.add("item_id_2");
 itemIds.add("item_id_1");
 
-mBillingProcessor.getItemDetailList(purchaseType, itemIds, new ItemDetailListHandler() {
+mBillingProcessor.getItemDetails(purchaseType, itemIds, new ItemDetailListHandler() {
     @Override
-    public void onSuccess(ItemDetailList itemDetailList) {
+    public void onSuccess(ItemDetails itemDetails) {
         // Do your stuff with the list of item details
-        List<Item> items = itemList.getAll();
+        List<Item> items = itemDetails.getAll();
     }
 
     @Override

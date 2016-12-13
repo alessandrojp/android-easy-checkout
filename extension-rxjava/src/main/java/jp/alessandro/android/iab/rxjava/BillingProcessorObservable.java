@@ -28,12 +28,12 @@ import java.util.List;
 import jp.alessandro.android.iab.BillingContext;
 import jp.alessandro.android.iab.BillingException;
 import jp.alessandro.android.iab.BillingProcessor;
-import jp.alessandro.android.iab.ItemDetailList;
-import jp.alessandro.android.iab.PurchaseList;
+import jp.alessandro.android.iab.ItemDetails;
+import jp.alessandro.android.iab.Purchases;
 import jp.alessandro.android.iab.PurchaseType;
 import jp.alessandro.android.iab.handler.ConsumeItemHandler;
 import jp.alessandro.android.iab.handler.InventoryHandler;
-import jp.alessandro.android.iab.handler.ItemDetailListHandler;
+import jp.alessandro.android.iab.handler.ItemDetailsHandler;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.StartActivityHandler;
 import rx.Emitter;
@@ -177,14 +177,14 @@ public class BillingProcessorObservable {
      *
      * @param purchaseType IN_APP or SUBSCRIPTION
      */
-    public Observable<PurchaseList> getInventory(final PurchaseType purchaseType) {
-        return Observable.fromEmitter(new Action1<Emitter<PurchaseList>>() {
+    public Observable<Purchases> getInventory(final PurchaseType purchaseType) {
+        return Observable.fromEmitter(new Action1<Emitter<Purchases>>() {
             @Override
-            public void call(final Emitter<PurchaseList> emitter) {
+            public void call(final Emitter<Purchases> emitter) {
                 mBillingProcessor.getInventory(purchaseType, new InventoryHandler() {
                     @Override
-                    public void onSuccess(PurchaseList purchaseList) {
-                        emitter.onNext(purchaseList);
+                    public void onSuccess(Purchases purchases) {
+                        emitter.onNext(purchases);
                         emitter.onCompleted();
                     }
 
@@ -198,21 +198,21 @@ public class BillingProcessorObservable {
     }
 
     /**
-     * Get a list of available SKUs details
+     * Get item details (SKU)
      * This will be executed from Work Thread
      * See http://developer.android.com/google/play/billing/billing_integrate.html#QueryDetails
      *
      * @param purchaseType IN_APP or SUBSCRIPTION
      * @param itemIds      list of SKU ids to be loaded
      */
-    public Observable<ItemDetailList> getItemDetailList(final PurchaseType purchaseType, final ArrayList<String> itemIds) {
-        return Observable.fromEmitter(new Action1<Emitter<ItemDetailList>>() {
+    public Observable<ItemDetails> getItemDetails(final PurchaseType purchaseType, final ArrayList<String> itemIds) {
+        return Observable.fromEmitter(new Action1<Emitter<ItemDetails>>() {
             @Override
-            public void call(final Emitter<ItemDetailList> emitter) {
-                mBillingProcessor.getItemDetailList(purchaseType, itemIds, new ItemDetailListHandler() {
+            public void call(final Emitter<ItemDetails> emitter) {
+                mBillingProcessor.getItemDetails(purchaseType, itemIds, new ItemDetailsHandler() {
                     @Override
-                    public void onSuccess(ItemDetailList itemDetailList) {
-                        emitter.onNext(itemDetailList);
+                    public void onSuccess(ItemDetails itemDetails) {
+                        emitter.onNext(itemDetails);
                         emitter.onCompleted();
                     }
 

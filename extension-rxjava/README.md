@@ -1,4 +1,4 @@
-# RxJava adapter for Easy Checkout Library
+# RxJava extension for Easy Checkout Library
 [![Build Status](https://travis-ci.org/alessandrojp/easy-checkout.svg)](https://travis-ci.org/alessandrojp/easy-checkout)
 [![Bintray](https://img.shields.io/bintray/v/alessandrojp/android/easy-checkout.svg)](https://bintray.com/alessandrojp/android/easy-checkout/view)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
@@ -206,9 +206,9 @@ mBillingProcessor.getInventory(purchaseType)
       .subscribeOn(Schedulers.io())
       .subscribe(new Action1<PurchaseList>() {
           @Override
-          public void call(PurchaseList purchaseList) {
+          public void call(Purchases purchases) {
               // Do your stuff with the list of purchases
-              List<Purchase> purchases = purchaseList.getAll();
+              List<Purchase> purchaseList = purchases.getAll();
           }
       }, new Action1<Throwable>() {
           @Override
@@ -228,14 +228,14 @@ ArrayList<String> itemIds = new ArrayList<>();
 itemIds.add("item_id_1");
 itemIds.add("item_id_2");
 
-mBillingProcessor.getItemDetailList(purchaseType, itemIds)
+mBillingProcessor.getItemDetails(purchaseType, itemIds)
       .observeOn(AndroidSchedulers.mainThread())
       .subscribeOn(Schedulers.io())
       .subscribe(new Action1<ItemDetailList>() {
           @Override
-          public void call(ItemDetailList itemList) {
+          public void call(ItemDetails itemDetails) {
               // Do your stuff with the list of item details
-              List<Item> items = itemList.getAll();
+              List<Item> items = itemDetails.getAll();
           }
       }, new Action1<Throwable>() {
           @Override

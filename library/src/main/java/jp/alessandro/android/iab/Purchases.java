@@ -23,30 +23,30 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ItemDetailList {
+public class Purchases {
 
-    private final Map<String, Item> mMap = new LinkedHashMap<>();
+    private final Map<String, Purchase> mMap = new LinkedHashMap<>();
 
-    public ItemDetailList() {
+    public Purchases() {
     }
 
     public boolean hasItemId(String itemId) {
         return mMap.containsKey(itemId);
     }
 
-    public List<Item> getAll() {
+    public List<Purchase> getAll() {
         return new ArrayList<>(mMap.values());
     }
 
-    public Item getByItemId(String itemId) {
+    public Purchase getByPurchaseId(String itemId) {
         return mMap.get(itemId);
     }
 
-    public int size() {
+    public int getSize() {
         return mMap.size();
     }
 
-    void put(Item item) {
-        mMap.put(item.getSku(), item);
+    void put(Purchase purchase) {
+        mMap.put(purchase.getSku(), purchase);
     }
 }

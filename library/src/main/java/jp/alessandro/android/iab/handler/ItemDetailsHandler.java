@@ -16,37 +16,11 @@
  *  Contact email: alessandro@alessandro.jp
  */
 
-package jp.alessandro.android.iab;
+package jp.alessandro.android.iab.handler;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import jp.alessandro.android.iab.ItemDetails;
 
-public class PurchaseList {
+public interface ItemDetailsHandler extends ErrorHandler {
 
-    private final Map<String, Purchase> mMap = new LinkedHashMap<>();
-
-    public PurchaseList() {
-    }
-
-    public boolean hasItemId(String itemId) {
-        return mMap.containsKey(itemId);
-    }
-
-    public List<Purchase> getAll() {
-        return new ArrayList<>(mMap.values());
-    }
-
-    public Purchase getByPurchaseId(String itemId) {
-        return mMap.get(itemId);
-    }
-
-    public int size() {
-        return mMap.size();
-    }
-
-    void put(Purchase purchase) {
-        mMap.put(purchase.getSku(), purchase);
-    }
+    void onSuccess(ItemDetails itemDetails);
 }

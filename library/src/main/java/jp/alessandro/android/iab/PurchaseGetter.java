@@ -56,15 +56,15 @@ class PurchaseGetter {
      * @return
      * @throws BillingException
      */
-    public PurchaseList get(IInAppBillingService service, String itemType) throws BillingException {
-        PurchaseList purchaseList = new PurchaseList();
+    public Purchases get(IInAppBillingService service, String itemType) throws BillingException {
+        Purchases purchases = new Purchases();
         String continueToken = null;
         do {
             Bundle bundle = getPurchasesBundle(service, itemType, continueToken);
-            checkResponse(bundle, purchaseList);
+            checkResponse(bundle, purchases);
             continueToken = bundle.getString(Constants.RESPONSE_INAPP_CONTINUATION_TOKEN);
         } while (!TextUtils.isEmpty(continueToken));
-        return purchaseList;
+        return purchases;
     }
 
     private Bundle getPurchasesBundle(IInAppBillingService service, String itemType,
@@ -76,7 +76,7 @@ class PurchaseGetter {
         }
     }
 
-    private void checkResponse(Bundle data, PurchaseList purchasesList) throws BillingException {
+    private void checkResponse(Bundle data, Purchases purchasesList) throws BillingException {
         int response = data.getInt(Constants.RESPONSE_CODE);
         if (response == Constants.BILLING_RESPONSE_RESULT_OK) {
             ArrayList<String> purchaseList =
@@ -92,7 +92,7 @@ class PurchaseGetter {
     }
 
     private void checkPurchaseList(ArrayList<String> purchaseList, ArrayList<String> signatureList,
-                                   PurchaseList purchasesList) throws BillingException {
+                                   Purchases purchasesList) throws BillingException {
         if ((purchaseList == null) || (signatureList == null)) {
             throw new BillingException(Constants.ERROR_PURCHASE_DATA,
                     Constants.ERROR_MSG_GET_PURCHASES_SIGNATURE);
@@ -106,7 +106,7 @@ class PurchaseGetter {
 
     private void verifyAllPurchases(ArrayList<String> purchaseList,
                                     ArrayList<String> signatureList,
-                                    PurchaseList purchasesList) throws BillingException {
+                                    Purchases purchasesList) throws BillingException {
         for (int i = 0; i < purchaseList.size(); i++) {
             String purchaseData = purchaseList.get(i);
             String signature = signatureList.get(i);
@@ -114,11 +114,11 @@ class PurchaseGetter {
         }
     }
 
-    private void verifyBeforeAddPurchase(PurchaseList purchaseList, String purchaseData,
+    private void verifyBeforeAddPurchase(Purchases purchases, String purchaseData,
                                          String signature) throws BillingException {
         if (!TextUtils.isEmpty(purchaseData)) {
             if (Security.verifyPurchase(purchaseData, mLogger, mSignatureBase64, purchaseData, signature)) {
-                addPurchase(purchaseList, purchaseData, signature);
+                addPurchase(purchases, purchaseData, signature);
             } else {
                 mLogger.w(Logger.TAG, String.format(
                         "Purchase not valid. PurchaseData: %s, signature: %s", purchaseData, signature));
@@ -126,7 +126,7 @@ class PurchaseGetter {
         }
     }
 
-    private void addPurchase(PurchaseList purchaseList,
+    private void addPurchase(Purchases purchases,
                              String purchaseData,
                              String signature) throws BillingException {
         Purchase purchase;
@@ -139,6 +139,6 @@ class PurchaseGetter {
             throw new BillingException(Constants.ERROR_PURCHASE_DATA,
                     Constants.ERROR_MSG_PURCHASE_TOKEN);
         }
-        purchaseList.put(purchase);
+        purchases.put(purchase);
     }
 }

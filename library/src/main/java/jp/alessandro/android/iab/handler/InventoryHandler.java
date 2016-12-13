@@ -18,9 +18,9 @@
 
 package jp.alessandro.android.iab.handler;
 
-import jp.alessandro.android.iab.PurchaseList;
+import jp.alessandro.android.iab.Purchases;
 
 public interface InventoryHandler extends ErrorHandler {
 
-    void onSuccess(PurchaseList purchaseList);
+    void onSuccess(Purchases purchases);
 }
