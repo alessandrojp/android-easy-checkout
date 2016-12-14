@@ -204,7 +204,7 @@ PurchaseType purchaseType = PurchaseType.IN_APP; // PurchaseType.SUBSCRIPTIONS f
 mBillingProcessor.getInventory(purchaseType)
       .observeOn(AndroidSchedulers.mainThread())
       .subscribeOn(Schedulers.io())
-      .subscribe(new Action1<PurchaseList>() {
+      .subscribe(new Action1<Purchases>() {
           @Override
           public void call(Purchases purchases) {
               // Do your stuff with the list of purchases
@@ -231,7 +231,7 @@ itemIds.add("item_id_2");
 mBillingProcessor.getItemDetails(purchaseType, itemIds)
       .observeOn(AndroidSchedulers.mainThread())
       .subscribeOn(Schedulers.io())
-      .subscribe(new Action1<ItemDetailList>() {
+      .subscribe(new Action1<ItemDetails>() {
           @Override
           public void call(ItemDetails itemDetails) {
               // Do your stuff with the list of item details
