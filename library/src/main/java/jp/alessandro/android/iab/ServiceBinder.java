@@ -25,24 +25,28 @@ import android.content.ServiceConnection;
 
 import com.android.vending.billing.IInAppBillingService;
 
+import jp.alessandro.android.iab.logger.Logger;
+
 class ServiceBinder implements ServiceConnection {
 
     public interface Handler {
 
-        void onBind(IInAppBillingService service);
+        void onBind(BillingService service);
 
-        void onError();
+        void onError(BillingException exception);
     }
 
     private final Context mContext;
     private final Intent mIntent;
+    private final Logger mLogger;
     private final android.os.Handler mEventHandler;
 
     private Handler mHandler;
 
-    public ServiceBinder(Context context, Intent intent) {
-        mContext = context.getApplicationContext();
+    public ServiceBinder(BillingContext context, Intent intent) {
+        mContext = context.getContext();
         mIntent = intent;
+        mLogger = context.getLogger();
         mEventHandler = new android.os.Handler();
     }
 
@@ -70,25 +74,55 @@ class ServiceBinder implements ServiceConnection {
         setBinder(null);
     }
 
-    private void setBinder(android.os.IBinder binder) {
+    protected void setBinder(android.os.IBinder binder) {
         IInAppBillingService service = IInAppBillingService.Stub.asInterface(binder);
         Handler handler = mHandler;
         mHandler = null;
 
-        if (handler != null) {
+        if (handler == null) {
+            return;
+        }
+        if (service == null) {
+            BillingException e = new BillingException(
+                    Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
+                    Constants.ERROR_MSG_BIND_SERVICE_FAILED_SERVICE_NULL);
+
+            postBinderError(e, handler);
+        } else {
             postBinder(service, handler);
         }
     }
 
-    private void bindService(Handler handler) {
+    protected void bindService(Handler handler) {
         if (mHandler != null) {
             return;
         }
-        boolean bound = mContext.bindService(mIntent, this, Context.BIND_AUTO_CREATE);
-        if (bound) {
-            mHandler = handler;
-        } else {
-            handler.onError();
+        try {
+            boolean bound = mContext.bindService(mIntent, this, Context.BIND_AUTO_CREATE);
+            if (bound) {
+                mHandler = handler;
+            } else {
+                BillingException e = new BillingException(
+                        Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
+                        Constants.ERROR_MSG_BIND_SERVICE_FAILED);
+                postBinderError(e, handler);
+            }
+        } catch (NullPointerException e1) {
+            mLogger.e(Logger.TAG, e1.getMessage());
+
+            // Meizu M3s devices may throw a NPE
+            BillingException e = new BillingException(
+                    Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
+                    Constants.ERROR_MSG_BIND_SERVICE_FAILED_NPE);
+            postBinderError(e, handler);
+        } catch (IllegalArgumentException e2) {
+            mLogger.e(Logger.TAG, e2.getMessage());
+
+            // Some devices may throw IllegalArgumentException
+            BillingException e = new BillingException(
+                    Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
+                    Constants.ERROR_MSG_BIND_SERVICE_FAILED_ILLEGAL_ARGUMENT);
+            postBinderError(e, handler);
         }
     }
 
@@ -97,7 +131,18 @@ class ServiceBinder implements ServiceConnection {
             @Override
             public void run() {
                 if (handler != null) {
-                    handler.onBind(service);
+                    handler.onBind(new BillingService(service));
+                }
+            }
+        });
+    }
+
+    private void postBinderError(final BillingException exception, final Handler handler) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                if (handler != null) {
+                    handler.onError(exception);
                 }
             }
         });

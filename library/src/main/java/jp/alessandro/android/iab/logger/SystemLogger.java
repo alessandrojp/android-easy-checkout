@@ -33,6 +33,11 @@ public class SystemLogger implements Logger {
     }
 
     @Override
+    public void e(String tag, String msg, Exception e) {
+        Log.e(tag, msg, e);
+    }
+
+    @Override
     public void i(String tag, String msg) {
         Log.i(tag, msg);
     }

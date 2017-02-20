@@ -5,12 +5,16 @@
 
 
 ### Installation
-* Add this into your build.gradle file:
+* For Eclipse users, download the latest jar version on [Bintray][] and add it as a dependency.
+
+* For Gradle users, the library is available in the jcenter and mavenCentral. Add this into your build.gradle file:
 
 ```groovy
 repositories {
     jcenter()
+    mavenCentral()
 }
+
 dependencies {
     compile 'jp.alessandro.android:easy-checkout:vX.X.X'
     compile 'jp.alessandro.android:easy-checkout-extension-rxjava:vX.X.X'
@@ -147,7 +151,7 @@ As a result you will get a [Purchase](#purchase-object) object through of the Pu
 ```java
 String itemId = "YOUR_ITEM_ID";
 
-mBillingProcessor.consume(itemId)
+mBillingProcessor.consumePurchase(itemId)
       .observeOn(AndroidSchedulers.mainThread())
       .subscribeOn(Schedulers.io())
       .subscribe(new Action1<Void>() {
@@ -201,7 +205,7 @@ As a result you will get a [Purchase](#purchase-object) object through of the Pu
 ```java
 PurchaseType purchaseType = PurchaseType.IN_APP; // PurchaseType.SUBSCRIPTIONS for subscriptions
 
-mBillingProcessor.getInventory(purchaseType)
+mBillingProcessor.getPurchases(purchaseType)
       .observeOn(AndroidSchedulers.mainThread())
       .subscribeOn(Schedulers.io())
       .subscribe(new Action1<PurchaseList>() {
@@ -246,6 +250,22 @@ mBillingProcessor.getItemDetails(purchaseType, itemIds)
 ```
 As a result you will get a list of [Item](#item-object) detail objects.
 
+# Cancel
+* Cancel the all purchase flows. It will clear the pending purchase flows and ignore any event until a new request.<br />If you don't need the BillingProcessor instance any more, call directly [Release](#release) instead.
+<br />**Note: By canceling it will not cancel the purchase process since the purchase process is not controlled by the app.**
+
+```java
+mBillingProcessor.cancel();
+```
+
+# Release
+* Release the handlers. Once you release it, you **MUST** to create a new instance.
+<br />**Note: By releasing it will not cancel the purchase process since the purchase process is not controlled by the app.**
+
+```java
+mBillingProcessor.release();
+```
+
 # Check In-App Billing service availability
 * In some devices, In-App Billing may not be available.
 Therefore, it is advisable to check whether it is available or not by calling `BillingProcessorObservable.isServiceAvailable` as follows:
@@ -261,28 +281,28 @@ if (!isAvailable) {
 * This object contains all the information of a purchase
 
 ```java
-public String getOriginalJson();
-public String getOrderId();
-public String getPackageName();
-public String getSku();
-public long getPurchaseTime();
-public int getPurchaseState();
-public String getDeveloperPayload();
-public String getToken();
-public boolean isAutoRenewing();
-public String getSignature();
+  public String getOriginalJson();
+  public String getOrderId();
+  public String getPackageName();
+  public String getSku();
+  public long getPurchaseTime();
+  public int getPurchaseState();
+  public String getDeveloperPayload();
+  public String getToken();
+  public boolean isAutoRenewing();
+  public String getSignature();
 ```
 
 # Item Object
 * This object contains all the information of an item
 
 ```java
-public String getOriginalJson();
-public String getSku();
-public String getType();
-public String getTitle();
-public String getDescription();
-public String getCurrency();
-public String getPrice();
-public long getPriceMicros();
+  public String getOriginalJson();
+  public String getSku();
+  public String getType();
+  public String getTitle();
+  public String getDescription();
+  public String getCurrency();
+  public String getPrice();
+  public long getPriceMicros();
 ```

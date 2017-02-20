@@ -87,24 +87,38 @@ public class Constants {
 
 
     // ******************** BILLING ERROR MESSAGES ******************** //
-    public static final String ERROR_MSG_BAD_RESPONSE = "Failed to parse the purchase data.";
+    public static final String ERROR_MSG_BAD_RESPONSE = "Failed to parse the purchase data. Please check the log for more info.";
     public static final String ERROR_MSG_BIND_SERVICE_FAILED = "Failed to bind In-App Billing service. " +
             "Have you checked if this device supports In-App Billing? " +
             "If not, you can check if it is available calling isServiceAvailable. " +
-            "See the documentation for more information.";
+            "See the documentation for more information or the logs.";
+
+    @SuppressWarnings("checkstyle:linelength")
+    public static final String ERROR_MSG_BIND_SERVICE_FAILED_NPE = "NullPointerException while trying to bind service. Please check the log for more info.";
+    @SuppressWarnings("checkstyle:linelength")
+    public static final String ERROR_MSG_BIND_SERVICE_FAILED_ILLEGAL_ARGUMENT = "IllegalArgumentException while trying to bind service. Please check the log for more info.";
+    @SuppressWarnings("checkstyle:linelength")
+    public static final String ERROR_MSG_BIND_SERVICE_FAILED_SERVICE_NULL = "onServiceConnected was called but InAppBillingService is null.";
 
     public static final String ERROR_MSG_CONSUME = "Error while trying  to consume item.";
     public static final String ERROR_MSG_GET_PURCHASES = "Error while trying to get purchases.";
-    public static final String ERROR_MSG_GET_PURCHASES_SIGNATURE = "Purchase or Signature is null.";
-    public static final String ERROR_MSG_GET_PURCHASES_SIGNATURE_SIZE = "Purchase and Signature size are different.";
+    public static final String ERROR_MSG_GET_PURCHASES_DATA_LIST = "Purchase list is null.";
+    public static final String ERROR_MSG_GET_PURCHASES_DIFFERENT_SIZE = "Purchase and Signature have different sizes.";
+    public static final String ERROR_MSG_GET_PURCHASES_SIGNATURE_LIST = "Signature list is null.";
+    @SuppressWarnings("checkstyle:linelength")
+    public static final String ERROR_MSG_GET_PURCHASE_VERIFICATION_FAILED_WITH_PARAMS = "***FAILED*** Purchase signature verification failed. Not adding item. PurchaseData: %s, signature: %s.";
+    @SuppressWarnings("checkstyle:linelength")
+    public static final String ERROR_MSG_GET_PURCHASE_VERIFICATION_FAILED = "***FAILED*** Failed to verify if the purchase is valid or not. Please check the log for more info.";
     public static final String ERROR_MSG_GET_SKU_DETAILS = "Error while trying to get sku details.";
-    public static final String ERROR_MSG_PURCHASE_FLOW_ALREADY_EXISTS = "Purchase flow already exists. RequestCode: %d.";
+    public static final String ERROR_MSG_GET_SKU_DETAILS_RESPONSE_LIST_NULL = "Response item details list is null.";
+    public static final String ERROR_MSG_LIBRARY_ALREADY_RELEASED = "The library was released. Please generate a new instance of BillingProcessor.";
     public static final String ERROR_MSG_LOST_CONTEXT = "Context is null.";
+    public static final String ERROR_MSG_METHOD_MUST_BE_CALLED_ON_UI_THREAD = "Must be called from UI Thread.";
     public static final String ERROR_MSG_NULL_PURCHASE_DATA = "IAB returned null purchaseData or signature.";
     public static final String ERROR_MSG_PENDING_INTENT = "Pending intent is null. Probably a BUG.";
-    public static final String ERROR_MSG_PURCHASE_OR_TOKEN_NULL = "Purchase data or token is null.";
-    public static final String ERROR_MSG_PURCHASE_TOKEN = "Purchase token is null. Probably a BUG.";
+    public static final String ERROR_MSG_PURCHASE_FLOW_ALREADY_EXISTS = "Purchase flow already exists. RequestCode: %d.";
     public static final String ERROR_MSG_PURCHASES_NOT_SUPPORTED = "Purchases are not supported on this device.";
+    public static final String ERROR_MSG_PURCHASE_OR_TOKEN_NULL = "Purchase data or token is null.";
     public static final String ERROR_MSG_RESULT_NULL_INTENT = "IAB result returned a null intent data.";
     public static final String ERROR_MSG_RESULT_REQUEST_CODE_INVALID = "An invalid requestCode was given.";
     public static final String ERROR_MSG_RESULT_OK = "Problem while trying to purchase an item.";
@@ -114,6 +128,49 @@ public class Constants {
     public static final String ERROR_MSG_UNABLE_TO_BUY = "Unable to buy the item.";
     public static final String ERROR_MSG_VERIFICATION_FAILED = "Signature verification has failed.";
     public static final String ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE = "***BUG*** Unexpected type for bundle response code.";
-    public static final String ERROR_MSG_UNEXPECTED_INTENT_RESPONSE = "***BUG*** Unexpected type for intent response code.";
+    public static final String ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE_NULL = "***BUG*** Bundle response is null.";
     public static final String ERROR_MSG_UPDATE_ARGUMENT_MISSING = "Argument oldItemList cannot be null or empty.";
+
+
+    // ******************** BILLING TESTS ******************** //
+    static final String TEST_ORDER_ID = "GPA.1234-5678-9012-34567";
+    static final String TEST_PACKAGE_NAME = "jp.alessandro.android.iab";
+    static final String TEST_PRODUCT_ID = "android.test.purchased";
+    static final String TEST_PURCHASE_TIME = "1345678900000";
+    static final String TEST_DEVELOPER_PAYLOAD = "optional_developer_payload";
+    static final String TEST_PURCHASE_TOKEN = "opaque-token-up-to-1000-characters";
+    @SuppressWarnings("checkstyle:linelength")
+    static final String TEST_PUBLIC_KEY_BASE_64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7SEtV7WT1vJKdS1fBgskYk+c8j6YUa6kz8NwLbD7EkKGh+0ocSmsde4BewrQDijHC0z6Cxs3s8Kks2JC75NTZUvRQRN5T19Po2owTXTrkT5+Zh2nt5/0lj7RnMyB6qYMeVebDh4oUmj4YkLdQ3QjOpLjGep1xjIunOvJrpMiNkQuRl3ENBbkwEbDKzSquXXMngjfkx2PyHfirbE2dDVXkG85G542KSBfOHF1AQpEO7hiRgz8b5JTuSe4oOdYc11WG4bNxnLpcUeh8xwE9txcipDrz6cUFfb6D3lL8zPIzyZxiwIr0+G0O7ise+vIMaP0JOA891eqruBVEI7WPCyT0QIDAQAB";
+    static final String TEST_JSON_RECEIPT = "{" +
+            "\"orderId\":\"" + TEST_ORDER_ID + "\"," +
+            "\"packageName\":\"" + TEST_PACKAGE_NAME + "\"," +
+            "\"productId\":\"" + TEST_PRODUCT_ID + "_%d\"," +
+            "\"purchaseTime\":" + TEST_PURCHASE_TIME + "," +
+            "\"purchaseState\":0," +
+            "\"developerPayload\":\"" + TEST_DEVELOPER_PAYLOAD + "\"," +
+            "\"purchaseToken\":\"" + TEST_PURCHASE_TOKEN + "\"," +
+            "\"autoRenewing\":true}";
+
+    static final String TEST_JSON_RECEIPT_NO_TOKEN = "{" +
+            "\"orderId\":\"" + TEST_ORDER_ID + "\"," +
+            "\"packageName\":\"" + TEST_PACKAGE_NAME + "\"," +
+            "\"productId\":\"" + TEST_PRODUCT_ID + "_%d\"," +
+            "\"purchaseTime\":" + TEST_PURCHASE_TIME + "," +
+            "\"purchaseState\":0," +
+            "\"developerPayload\":\"" + TEST_DEVELOPER_PAYLOAD + "\"," +
+            "\"autoRenewing\":true}";
+
+    static final String TEST_JSON_BROKEN = "{\"productId\":\"\"";
+
+    static final String SKU_DETAIL_JSON = "{" +
+            "\"productId\": \"" + TEST_PRODUCT_ID + "_%d\"," +
+            "\"type\": \"subs\"," +
+            "\"price\": \"¥1080\"," +
+            "\"price_amount_micros\": \"10800000\"," +
+            "\"price_currency_code\": \"JPY\"," +
+            "\"title\": \"Test Product\"," +
+            "\"description\": \"Fast and easy use Android In-App Billing\"}";
+
+    static final String TYPE_IN_APP = "inapp";
+    static final String TYPE_SUBSCRIPTION = "subs";
 }

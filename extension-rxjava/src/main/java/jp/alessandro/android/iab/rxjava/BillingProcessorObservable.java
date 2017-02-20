@@ -35,7 +35,10 @@ import jp.alessandro.android.iab.handler.ConsumeItemHandler;
 import jp.alessandro.android.iab.handler.InventoryHandler;
 import jp.alessandro.android.iab.handler.ItemDetailsHandler;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
+import jp.alessandro.android.iab.handler.PurchasesHandler;
 import jp.alessandro.android.iab.handler.StartActivityHandler;
+import rx.Completable;
+import rx.CompletableEmitter;
 import rx.Emitter;
 import rx.Observable;
 import rx.functions.Action1;
@@ -72,15 +75,15 @@ public class BillingProcessorObservable {
      * @param purchaseType     IN_APP or SUBSCRIPTION
      * @param developerPayload optional argument to be sent back with the purchase information. It helps to identify the user
      */
-    public Observable<Void> startPurchase(final Activity activity,
-                                          final int requestCode,
-                                          final String itemId,
-                                          final PurchaseType purchaseType,
-                                          final String developerPayload) {
+    public Completable startPurchase(final Activity activity,
+                                     final int requestCode,
+                                     final String itemId,
+                                     final PurchaseType purchaseType,
+                                     final String developerPayload) {
 
-        return Observable.fromEmitter(new Action1<Emitter<Void>>() {
+        return Completable.fromEmitter(new Action1<CompletableEmitter>() {
             @Override
-            public void call(final Emitter<Void> emitter) {
+            public void call(final CompletableEmitter emitter) {
                 mBillingProcessor.startPurchase(activity,
                         requestCode,
                         itemId,
@@ -89,7 +92,6 @@ public class BillingProcessorObservable {
                         new StartActivityHandler() {
                             @Override
                             public void onSuccess() {
-                                emitter.onNext(null);
                                 emitter.onCompleted();
                             }
 
@@ -99,7 +101,7 @@ public class BillingProcessorObservable {
                             }
                         });
             }
-        }, Emitter.BackpressureMode.LATEST);
+        });
     }
 
     /**
@@ -116,20 +118,19 @@ public class BillingProcessorObservable {
      * @param itemId           new subscription item id
      * @param developerPayload optional argument to be sent back with the purchase information. It helps to identify the user
      */
-    public Observable<Void> updateSubscription(final Activity activity,
-                                               final int requestCode,
-                                               final List<String> oldItemIds,
-                                               final String itemId,
-                                               final String developerPayload) {
+    public Completable updateSubscription(final Activity activity,
+                                          final int requestCode,
+                                          final List<String> oldItemIds,
+                                          final String itemId,
+                                          final String developerPayload) {
 
-        return Observable.fromEmitter(new Action1<Emitter<Void>>() {
+        return Completable.fromEmitter(new Action1<CompletableEmitter>() {
             @Override
-            public void call(final Emitter<Void> emitter) {
+            public void call(final CompletableEmitter emitter) {
                 mBillingProcessor.updateSubscription(activity, requestCode, oldItemIds, itemId, developerPayload,
                         new StartActivityHandler() {
                             @Override
                             public void onSuccess() {
-                                emitter.onNext(null);
                                 emitter.onCompleted();
                             }
 
@@ -139,7 +140,37 @@ public class BillingProcessorObservable {
                             }
                         });
             }
-        }, Emitter.BackpressureMode.LATEST);
+        });
+    }
+
+    /**
+     * Method deprecated, please use @{link {@link BillingProcessorObservable#consumePurchase(String)}}
+     * <p>
+     * Consumes previously purchased item to be purchased again
+     * This will be executed from Work Thread
+     * See http://developer.android.com/google/play/billing/billing_integrate.html#Consume
+     *
+     * @param itemId consumable item id
+     */
+    @Deprecated
+    public Completable consume(final String itemId) {
+        return Completable.fromEmitter(new Action1<CompletableEmitter>() {
+
+            @Override
+            public void call(final CompletableEmitter emitter) {
+                mBillingProcessor.consume(itemId, new ConsumeItemHandler() {
+                    @Override
+                    public void onSuccess() {
+                        emitter.onCompleted();
+                    }
+
+                    @Override
+                    public void onError(BillingException e) {
+                        emitter.onError(e);
+                    }
+                });
+            }
+        });
     }
 
     /**
@@ -149,14 +180,42 @@ public class BillingProcessorObservable {
      *
      * @param itemId consumable item id
      */
-    public Observable<Void> consume(final String itemId) {
-        return Observable.fromEmitter(new Action1<Emitter<Void>>() {
+    public Completable consumePurchase(final String itemId) {
+        return Completable.fromEmitter(new Action1<CompletableEmitter>() {
+
             @Override
-            public void call(final Emitter<Void> emitter) {
+            public void call(final CompletableEmitter emitter) {
                 mBillingProcessor.consume(itemId, new ConsumeItemHandler() {
                     @Override
                     public void onSuccess() {
-                        emitter.onNext(null);
+                        emitter.onCompleted();
+                    }
+
+                    @Override
+                    public void onError(BillingException e) {
+                        emitter.onError(e);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Get the information about inventory of purchases made by a user from your app
+     * This method will get all the purchases even if there are more than 500
+     * This will be executed from Work Thread
+     * See http://developer.android.com/google/play/billing/billing_integrate.html#QueryPurchases
+     *
+     * @param purchaseType IN_APP or SUBSCRIPTION
+     */
+    public Observable<Purchases> getPurchases(final PurchaseType purchaseType) {
+        return Observable.fromEmitter(new Action1<Emitter<Purchases>>() {
+            @Override
+            public void call(final Emitter<Purchases> emitter) {
+                mBillingProcessor.getPurchases(purchaseType, new PurchasesHandler() {
+                    @Override
+                    public void onSuccess(Purchases purchases) {
+                        emitter.onNext(purchases);
                         emitter.onCompleted();
                     }
 
@@ -170,6 +229,8 @@ public class BillingProcessorObservable {
     }
 
     /**
+     * Method deprecated, please use @{link {@link BillingProcessorObservable#getPurchases(PurchaseType)}}
+     * <p>
      * Get the information about inventory of purchases made by a user from your app
      * This method will get all the purchases even if there are more than 500
      * This will be executed from Work Thread
@@ -177,6 +238,7 @@ public class BillingProcessorObservable {
      *
      * @param purchaseType IN_APP or SUBSCRIPTION
      */
+    @Deprecated
     public Observable<Purchases> getInventory(final PurchaseType purchaseType) {
         return Observable.fromEmitter(new Action1<Emitter<Purchases>>() {
             @Override
@@ -237,6 +299,20 @@ public class BillingProcessorObservable {
      */
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
         return mBillingProcessor.onActivityResult(requestCode, resultCode, data);
+    }
+
+    /**
+     * Cancel the all purchase flows
+     * It will clear the pending purchase flows and ignore any event until a new request
+     * <p>
+     * If you don't need the BillingProcessor any more,
+     * call directly @{@link BillingProcessorObservable#release()} instead
+     * <p>
+     * By canceling it will not cancel the purchase process
+     * since the purchase process is not controlled by the app.
+     */
+    public void cancel() {
+        mBillingProcessor.cancel();
     }
 
     /**

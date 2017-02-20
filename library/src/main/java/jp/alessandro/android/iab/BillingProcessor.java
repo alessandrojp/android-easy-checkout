@@ -1,19 +1,19 @@
 /*
- * Copyright (C) 2016 Alessandro Yuichi Okimoto
+ *  Copyright (C) 2016 Alessandro Yuichi Okimoto
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *       http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * Contact email: alessandro@alessandro.jp
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *  Contact email: alessandro@alessandro.jp
  */
 
 package jp.alessandro.android.iab;
@@ -23,64 +23,75 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.os.RemoteException;
+import android.text.TextUtils;
+import android.util.SparseArray;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import jp.alessandro.android.iab.handler.ConsumeItemHandler;
+import jp.alessandro.android.iab.handler.ErrorHandler;
 import jp.alessandro.android.iab.handler.InventoryHandler;
 import jp.alessandro.android.iab.handler.ItemDetailsHandler;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
+import jp.alessandro.android.iab.handler.PurchasesHandler;
 import jp.alessandro.android.iab.handler.StartActivityHandler;
-
-/**
- * Created by Alessandro Yuichi Okimoto on 2016/11/22.
- */
+import jp.alessandro.android.iab.logger.Logger;
+import jp.alessandro.android.iab.response.PurchaseResponse;
 
 public class BillingProcessor {
 
-    private SubscriptionProcessor mSubscriptionProcessor;
-    private ItemProcessor mItemProcessor;
+    protected static final String WORK_THREAD_NAME = "AndroidEasyCheckoutThread";
+
+    private final BillingContext mContext;
+    private final SparseArray<PurchaseFlowLauncher> mPurchaseFlows;
+    private final Logger mLogger;
+    private final Intent mServiceIntent;
+
+    private PurchaseHandler mPurchaseHandler;
     private Handler mWorkHandler;
     private Handler mMainHandler;
+    private boolean mIsReleased;
 
     public BillingProcessor(BillingContext context, PurchaseHandler purchaseHandler) {
-        HandlerThread thread = new HandlerThread("AndroidIabThread");
-        thread.start();
-        // Handler to post all actions in the library
-        mWorkHandler = new Handler(thread.getLooper());
-        // Handler to post all events in the library
-        mMainHandler = new Handler(Looper.getMainLooper());
 
-        mSubscriptionProcessor = new SubscriptionProcessor(context, purchaseHandler, mWorkHandler, mMainHandler);
-        mItemProcessor = new ItemProcessor(context, purchaseHandler, mWorkHandler, mMainHandler);
+        mContext = context;
+        mPurchaseHandler = purchaseHandler;
+        mPurchaseFlows = new SparseArray<>();
+        mLogger = context.getLogger();
+
+        mServiceIntent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
+        mServiceIntent.setPackage(Constants.VENDING_PACKAGE);
     }
 
     /**
-     * Checks if the in-app billing service is available
+     * Check if nAppBillingService is supported on the device.
      *
-     * @param context application context
-     * @return true if it is available
+     * @param context
+     * @return true if it is supported
      */
-    public static boolean isServiceAvailable(Context context) {
+    public synchronized static boolean isServiceAvailable(Context context) {
         PackageManager packageManager = context.getPackageManager();
         Intent serviceIntent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         serviceIntent.setPackage(Constants.VENDING_PACKAGE);
         List<ResolveInfo> list = packageManager.queryIntentServices(serviceIntent, 0);
 
-        return list != null && list.size() > 0;
+        return list != null && !list.isEmpty();
     }
 
     /**
-     * Starts to purchase a consumable/non-consumable item or a subscription
+     * Purchase a subscription
      * This will be executed from UI Thread
      *
      * @param activity         activity calling this method
-     * @param requestCode      request code for the billing activity
-     * @param itemId           product item id
+     * @param requestCode
+     * @param itemId           new subscription item id
      * @param purchaseType     IN_APP or SUBSCRIPTION
      * @param developerPayload optional argument to be sent back with the purchase information. It helps to identify the user
      * @param handler          callback called asynchronously
@@ -92,33 +103,65 @@ public class BillingProcessor {
                               String developerPayload,
                               StartActivityHandler handler) {
         synchronized (this) {
-            checkIfIsNotReleased();
-            if (purchaseType == PurchaseType.SUBSCRIPTION) {
-                mSubscriptionProcessor.startPurchase(activity, requestCode, null, itemId, developerPayload, handler);
-            } else {
-                mItemProcessor.startPurchase(activity, requestCode, null, itemId, developerPayload, handler);
-            }
+            startPurchase(activity, requestCode, null, itemId, purchaseType, developerPayload, handler);
         }
     }
 
     /**
+     * Method deprecated, please use consumePurchase above instead
      * Consumes previously purchased item to be purchased again
-     * This will be executed from Work Thread
      * See http://developer.android.com/google/play/billing/billing_integrate.html#Consume
      *
      * @param itemId  consumable item id
      * @param handler callback called asynchronously
      */
-    public void consume(String itemId, ConsumeItemHandler handler) {
+    @Deprecated
+    public void consume(final String itemId, final ConsumeItemHandler handler) {
+        consumePurchase(itemId, handler);
+    }
+
+    /**
+     * Consumes previously purchased item to be purchased again
+     * See http://developer.android.com/google/play/billing/billing_integrate.html#Consume
+     *
+     * @param itemId  consumable item id
+     * @param handler callback called asynchronously
+     */
+    public void consumePurchase(final String itemId, final ConsumeItemHandler handler) {
         synchronized (this) {
             checkIfIsNotReleased();
-            mItemProcessor.consume(itemId, handler);
+            executeInServiceOnWorkThread(new ServiceBinder.Handler() {
+                @Override
+                public void onBind(BillingService service) {
+                    try {
+                        checkIfBillingIsSupported(PurchaseType.IN_APP, service);
+
+                        int response = service.consumePurchase(mContext.getApiVersion(),
+                                mContext.getContext().getPackageName(), getToken(service, itemId));
+
+                        if (response != Constants.BILLING_RESPONSE_RESULT_OK) {
+                            throw new BillingException(response, Constants.ERROR_MSG_CONSUME);
+                        }
+
+                        postConsumePurchaseSuccess(handler);
+                    } catch (BillingException e) {
+                        postOnError(e, handler);
+                    } catch (RemoteException e) {
+                        postOnError(new BillingException(Constants.ERROR_REMOTE_EXCEPTION, e.getMessage()), handler);
+                    }
+                }
+
+                @Override
+                public void onError(BillingException e) {
+                    postBindServiceError(e, handler);
+                }
+            });
         }
     }
 
     /**
      * Updates a subscription (Upgrade / Downgrade)
-     * This will be executed from UI Thread
+     * This method MUST be called from UI Thread
      * This can only be done on API version 5
      * Even if you set up to use the API version 3
      * It will automatically use API version 5
@@ -138,48 +181,133 @@ public class BillingProcessor {
                                    String developerPayload,
                                    StartActivityHandler handler) {
         synchronized (this) {
+            if (oldItemIds == null || oldItemIds.isEmpty()) {
+                throw new IllegalArgumentException(Constants.ERROR_MSG_UPDATE_ARGUMENT_MISSING);
+            }
+            startPurchase(activity, requestCode, oldItemIds, itemId, PurchaseType.SUBSCRIPTION, developerPayload, handler);
+        }
+    }
+
+    /**
+     * Get item details (SKU)
+     * See http://developer.android.com/google/play/billing/billing_integrate.html#QueryDetails
+     *
+     * @param purchaseType IN_APP or SUBSCRIPTION
+     * @param handler      callback called asynchronously
+     */
+    public void getItemDetails(final PurchaseType purchaseType,
+                               final ArrayList<String> itemIds,
+                               final ItemDetailsHandler handler) {
+        synchronized (this) {
             checkIfIsNotReleased();
-            mSubscriptionProcessor.update(activity, requestCode, oldItemIds, itemId, developerPayload, handler);
+            executeInServiceOnWorkThread(new ServiceBinder.Handler() {
+                @Override
+                public void onBind(BillingService service) {
+                    String type;
+                    if (purchaseType == PurchaseType.SUBSCRIPTION) {
+                        type = Constants.TYPE_SUBSCRIPTION;
+                    } else {
+                        type = Constants.TYPE_IN_APP;
+                    }
+                    try {
+                        checkIfBillingIsSupported(purchaseType, service);
+
+                        ItemGetter getter = new ItemGetter(mContext);
+                        ItemDetails details = getter.get(service, type, createBundleItemListFromArray(itemIds));
+
+                        postListSuccess(details, handler);
+                    } catch (BillingException e) {
+                        postOnError(e, handler);
+                    }
+                }
+
+                @Override
+                public void onError(BillingException e) {
+                    postBindServiceError(e, handler);
+                }
+            });
         }
     }
 
     /**
      * Get the information about inventory of purchases made by a user from your app
      * This method will get all the purchases even if there are more than 500
-     * This will be executed from Work Thread
      * See http://developer.android.com/google/play/billing/billing_integrate.html#QueryPurchases
      *
      * @param purchaseType IN_APP or SUBSCRIPTION
      * @param handler      callback called asynchronously
      */
-    public void getInventory(PurchaseType purchaseType, InventoryHandler handler) {
+    public void getPurchases(final PurchaseType purchaseType, final PurchasesHandler handler) {
         synchronized (this) {
             checkIfIsNotReleased();
-            if (purchaseType == PurchaseType.SUBSCRIPTION) {
-                mSubscriptionProcessor.getInventory(handler);
-            } else {
-                mItemProcessor.getInventory(handler);
-            }
+            executeInServiceOnWorkThread(new ServiceBinder.Handler() {
+                @Override
+                public void onBind(BillingService service) {
+                    String type;
+                    if (purchaseType == PurchaseType.SUBSCRIPTION) {
+                        type = Constants.TYPE_SUBSCRIPTION;
+                    } else {
+                        type = Constants.TYPE_IN_APP;
+                    }
+                    try {
+                        checkIfBillingIsSupported(purchaseType, service);
+
+                        PurchaseGetter getter = new PurchaseGetter(mContext);
+                        Purchases purchases = getter.get(service, type);
+
+                        postPurchasesSuccess(purchases, handler);
+                    } catch (BillingException e) {
+                        postOnError(e, handler);
+                    }
+                }
+
+                @Override
+                public void onError(BillingException e) {
+                    postBindServiceError(e, handler);
+                }
+            });
         }
     }
 
     /**
-     * Get item details (SKU)
-     * This will be executed from Work Thread
-     * See http://developer.android.com/google/play/billing/billing_integrate.html#QueryDetails
+     * Method deprecated, please use getPurchases above instead
+     * <p>
+     * Get the information about inventory of purchases made by a user from your app
+     * This method will get all the purchases even if there are more than 500
+     * See http://developer.android.com/google/play/billing/billing_integrate.html#QueryPurchases
      *
-     * @param purchaseType IN_APP or SUBSCRIPTION
-     * @param itemIds      list of SKU ids to be loaded
-     * @param handler      callback called asynchronously
+     * @param handler callback called asynchronously
      */
-    public void getItemDetails(PurchaseType purchaseType, ArrayList<String> itemIds, ItemDetailsHandler handler) {
+    @Deprecated
+    public void getInventory(final PurchaseType purchaseType, final InventoryHandler handler) {
         synchronized (this) {
             checkIfIsNotReleased();
-            if (purchaseType == PurchaseType.SUBSCRIPTION) {
-                mSubscriptionProcessor.getItemDetails(itemIds, handler);
-            } else {
-                mItemProcessor.getItemDetails(itemIds, handler);
-            }
+            executeInServiceOnWorkThread(new ServiceBinder.Handler() {
+                @Override
+                public void onBind(BillingService service) {
+                    String type;
+                    if (purchaseType == PurchaseType.SUBSCRIPTION) {
+                        type = Constants.TYPE_SUBSCRIPTION;
+                    } else {
+                        type = Constants.TYPE_IN_APP;
+                    }
+                    try {
+                        checkIfBillingIsSupported(purchaseType, service);
+
+                        PurchaseGetter getter = new PurchaseGetter(mContext);
+                        Purchases purchases = getter.get(service, type);
+
+                        postInventorySuccess(purchases, handler);
+                    } catch (BillingException e) {
+                        postOnError(e, handler);
+                    }
+                }
+
+                @Override
+                public void onError(BillingException e) {
+                    postBindServiceError(e, handler);
+                }
+            });
         }
     }
 
@@ -191,17 +319,51 @@ public class BillingProcessor {
      * @param requestCode
      * @param resultCode
      * @param data
-     * @return true if the result was processed in the library
+     * @return
      */
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
         synchronized (this) {
-            checkIfIsNotReleased();
-            checkIsMainThread();
-            if (mSubscriptionProcessor.onActivityResult(requestCode, resultCode, data)
-                    || mItemProcessor.onActivityResult(requestCode, resultCode, data)) {
-                return true;
+            PurchaseFlowLauncher launcher = mPurchaseFlows.get(requestCode);
+            if (launcher == null) {
+                return false;
             }
-            return false;
+            try {
+                checkIsMainThread();
+                Purchase purchase = launcher.handleResult(requestCode, resultCode, data);
+
+                postPurchaseSuccess(purchase);
+            } catch (BillingException e) {
+                postPurchaseError(e);
+            } finally {
+                mPurchaseFlows.delete(requestCode);
+            }
+            return true;
+        }
+    }
+
+    /**
+     * Cancel the all purchase flows
+     * It will clear the pending purchase flows and ignore any event until a new request
+     * <p>
+     * If you don't need the BillingProcessor any more,
+     * call directly {@link BillingProcessor#release()} instead
+     * <p>
+     * By canceling it will not cancel the purchase process
+     * since the purchase process is not controlled by the app.
+     */
+    public void cancel() {
+        synchronized (this) {
+            if (mIsReleased) {
+                return;
+            }
+            mPurchaseFlows.clear();
+
+            if (mMainHandler != null) {
+                mMainHandler.removeCallbacksAndMessages(null);
+            }
+            if (mWorkHandler != null) {
+                mWorkHandler.removeCallbacksAndMessages(null);
+            }
         }
     }
 
@@ -212,29 +374,306 @@ public class BillingProcessor {
      * Once you release it, you MUST to create a new instance
      */
     public void release() {
-        synchronized (this) {
-            SubscriptionProcessor subscriptionProcessor = mSubscriptionProcessor;
-            ItemProcessor itemProcessor = mItemProcessor;
-            Handler mainThread = mMainHandler;
-            Handler workHandler = mWorkHandler;
+        mIsReleased = true;
+        mPurchaseHandler = null;
+        mPurchaseFlows.clear();
 
-            mSubscriptionProcessor = null;
-            mItemProcessor = null;
-            mMainHandler = null;
-            mWorkHandler = null;
+        Handler mainThread = mMainHandler;
+        Handler workHandler = mWorkHandler;
 
+        mMainHandler = null;
+        mWorkHandler = null;
+
+        if (mainThread != null) {
             mainThread.removeCallbacksAndMessages(null);
+        }
+        if (workHandler != null) {
             workHandler.removeCallbacksAndMessages(null);
             workHandler.getLooper().quit();
-
-            subscriptionProcessor.release();
-            itemProcessor.release();
         }
     }
 
+    /**
+     * Handler to post all events in the library
+     */
+    protected Handler getMainHandler() {
+        if (mMainHandler == null) {
+            return mMainHandler = new Handler(Looper.getMainLooper());
+        }
+        return mMainHandler;
+    }
+
+    /**
+     * Handler to post all actions in the library
+     */
+    protected Handler getWorkHandler() {
+        if (mWorkHandler == null) {
+            HandlerThread thread = new HandlerThread(WORK_THREAD_NAME);
+            thread.start();
+            return mWorkHandler = new Handler(thread.getLooper());
+        }
+        return mWorkHandler;
+    }
+
+    protected void checkIfBillingIsSupported(PurchaseType purchaseType, BillingService service) throws BillingException {
+        if (isSupported(purchaseType, service)) {
+            return;
+        }
+        if (purchaseType == PurchaseType.SUBSCRIPTION) {
+            throw new BillingException(Constants.ERROR_SUBSCRIPTIONS_NOT_SUPPORTED,
+                    Constants.ERROR_MSG_SUBSCRIPTIONS_NOT_SUPPORTED);
+        }
+        throw new BillingException(Constants.ERROR_PURCHASES_NOT_SUPPORTED,
+                Constants.ERROR_MSG_PURCHASES_NOT_SUPPORTED);
+    }
+
+    /**
+     * Check if the device supports InAppBilling
+     *
+     * @param service
+     * @return true if it is supported
+     */
+    protected boolean isSupported(PurchaseType purchaseType, BillingService service) {
+        String type;
+
+        if (purchaseType == PurchaseType.SUBSCRIPTION) {
+            type = Constants.TYPE_SUBSCRIPTION;
+        } else {
+            type = Constants.TYPE_IN_APP;
+        }
+
+        try {
+            int response = service.isBillingSupported(
+                    mContext.getApiVersion(),
+                    mContext.getContext().getPackageName(),
+                    type);
+
+            if (response == Constants.BILLING_RESPONSE_RESULT_OK) {
+                mLogger.d(Logger.TAG, "Subscription is AVAILABLE.");
+                return true;
+            }
+            mLogger.w(Logger.TAG,
+                    String.format(Locale.US, "Subscription is NOT AVAILABLE. Response: %d", response));
+        } catch (RemoteException e) {
+            mLogger.e(Logger.TAG, e.getMessage(), e);
+        }
+        return false;
+    }
+
+    /**
+     * Get the purchase token to be used in {@link BillingProcessor#consumePurchase(String, ConsumeItemHandler)}
+     */
+    protected String getToken(BillingService service, String itemId) throws BillingException {
+        PurchaseGetter getter = createPurchaseGetter();
+        Purchases purchases = getter.get(service, Constants.ITEM_TYPE_INAPP);
+        Purchase purchase = purchases.getByPurchaseId(itemId);
+
+        if (purchase == null || TextUtils.isEmpty(purchase.getToken())) {
+            throw new BillingException(Constants.ERROR_PURCHASE_DATA,
+                    Constants.ERROR_MSG_PURCHASE_OR_TOKEN_NULL);
+        }
+        return purchase.getToken();
+    }
+
+    protected PurchaseGetter createPurchaseGetter() {
+        return new PurchaseGetter(mContext);
+    }
+
+    protected Bundle createBundleItemListFromArray(ArrayList<String> itemIds) {
+        Bundle bundle = new Bundle();
+        bundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
+        return bundle;
+    }
+
+    protected ServiceBinder createServiceBinder() {
+        return new ServiceBinder(mContext, mServiceIntent);
+    }
+
+    private void startPurchase(final Activity activity,
+                               final int requestCode,
+                               final List<String> oldItemIds,
+                               final String itemId,
+                               final PurchaseType purchaseType,
+                               final String developerPayload,
+                               final StartActivityHandler handler) {
+
+        checkIfIsNotReleased();
+        executeInServiceOnMainThread(new ServiceBinder.Handler() {
+            @Override
+            public void onBind(BillingService service) {
+                try {
+                    // Before launch the IAB activity, we check if subscriptions are supported.
+                    checkIfBillingIsSupported(purchaseType, service);
+                    PurchaseFlowLauncher launcher = createPurchaseFlowLauncher(purchaseType, requestCode);
+                    mPurchaseFlows.append(requestCode, launcher);
+                    launcher.launch(service, activity, requestCode, oldItemIds, itemId, developerPayload);
+
+                    postActivityStartedSuccess(handler);
+                } catch (BillingException e) {
+                    if (e.getErrorCode() != Constants.ERROR_PURCHASE_FLOW_ALREADY_EXISTS) {
+                        mPurchaseFlows.delete(requestCode);
+                    }
+                    postOnError(e, handler);
+                }
+            }
+
+            @Override
+            public void onError(BillingException e) {
+                postBindServiceError(e, handler);
+            }
+        });
+    }
+
+    private void executeInService(final ServiceBinder.Handler serviceHandler, Handler handler) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                final ServiceBinder conn = createServiceBinder();
+
+                conn.getServiceAsync(new ServiceBinder.Handler() {
+                    @Override
+                    public void onBind(BillingService service) {
+                        try {
+                            serviceHandler.onBind(service);
+                        } finally {
+                            conn.unbindService();
+                        }
+                    }
+
+                    @Override
+                    public void onError(BillingException e) {
+                        serviceHandler.onError(e);
+                    }
+                });
+            }
+        });
+    }
+
+    private PurchaseFlowLauncher createPurchaseFlowLauncher(PurchaseType purchaseType, int requestCode) throws BillingException {
+        PurchaseFlowLauncher launcher = mPurchaseFlows.get(requestCode);
+        String type;
+
+        if (launcher != null) {
+            String message = String.format(Locale.US, Constants.ERROR_MSG_PURCHASE_FLOW_ALREADY_EXISTS, requestCode);
+            throw new BillingException(Constants.ERROR_PURCHASE_FLOW_ALREADY_EXISTS, message);
+        }
+
+        if (purchaseType == PurchaseType.SUBSCRIPTION) {
+            type = Constants.TYPE_SUBSCRIPTION;
+        } else {
+            type = Constants.TYPE_IN_APP;
+        }
+        return new PurchaseFlowLauncher(mContext, type);
+    }
+
+    private void executeInServiceOnWorkThread(final ServiceBinder.Handler serviceHandler) {
+        executeInService(serviceHandler, getWorkHandler());
+    }
+
+    private void executeInServiceOnMainThread(final ServiceBinder.Handler serviceHandler) {
+        executeInService(serviceHandler, getMainHandler());
+    }
+
+    private void postBindServiceError(BillingException exception, ErrorHandler handler) {
+        postOnError(exception, handler);
+    }
+
+    private void postPurchaseSuccess(final Purchase purchase) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                if (mPurchaseHandler != null) {
+                    mPurchaseHandler.call(new PurchaseResponse(purchase, null));
+                }
+            }
+        });
+    }
+
+    private void postPurchaseError(final BillingException e) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                if (mPurchaseHandler != null) {
+                    mPurchaseHandler.call(new PurchaseResponse(null, e));
+                }
+            }
+        });
+    }
+
+    private void postListSuccess(final ItemDetails itemDetails, final ItemDetailsHandler handler) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                if (handler != null) {
+                    handler.onSuccess(itemDetails);
+                }
+            }
+        });
+    }
+
+    private void postPurchasesSuccess(final Purchases purchases, final PurchasesHandler handler) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                if (handler != null) {
+                    handler.onSuccess(purchases);
+                }
+            }
+        });
+    }
+
+    private void postConsumePurchaseSuccess(final ConsumeItemHandler handler) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                if (handler != null) {
+                    handler.onSuccess();
+                }
+            }
+        });
+    }
+
+    @Deprecated
+    private void postInventorySuccess(final Purchases purchases, final InventoryHandler handler) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                if (handler != null) {
+                    handler.onSuccess(purchases);
+                }
+            }
+        });
+    }
+
+    private void postActivityStartedSuccess(final StartActivityHandler handler) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                if (handler != null) {
+                    handler.onSuccess();
+                }
+            }
+        });
+    }
+
+    private void postOnError(final BillingException e, final ErrorHandler handler) {
+        postEventHandler(new Runnable() {
+            @Override
+            public void run() {
+                if (handler != null) {
+                    handler.onError(e);
+                }
+            }
+        });
+    }
+
+    private void postEventHandler(Runnable r) {
+        getMainHandler().post(r);
+    }
+
     private void checkIfIsNotReleased() {
-        if (mSubscriptionProcessor == null || mItemProcessor == null) {
-            throw new IllegalStateException("The library was released. Please generate a new instance of BillingProcessor.");
+        if (mIsReleased) {
+            throw new IllegalStateException(Constants.ERROR_MSG_LIBRARY_ALREADY_RELEASED);
         }
     }
 
@@ -242,6 +681,6 @@ public class BillingProcessor {
         if (Looper.getMainLooper() == Looper.myLooper()) {
             return;
         }
-        throw new IllegalStateException("Must be called from UI Thread.");
+        throw new IllegalStateException(Constants.ERROR_MSG_METHOD_MUST_BE_CALLED_ON_UI_THREAD);
     }
 }

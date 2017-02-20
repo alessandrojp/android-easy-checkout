@@ -26,6 +26,8 @@ public interface Logger {
 
     void e(String tag, String msg);
 
+    void e(String tag, String msg, Exception e);
+
     void i(String tag, String msg);
 
     void v(String tag, String msg);

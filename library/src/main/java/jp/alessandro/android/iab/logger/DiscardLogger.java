@@ -31,6 +31,11 @@ public class DiscardLogger implements Logger {
     }
 
     @Override
+    public void e(String tag, String msg, Exception e) {
+
+    }
+
+    @Override
     public void i(String tag, String msg) {
 
     }

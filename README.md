@@ -2,11 +2,12 @@
 ![API](https://img.shields.io/badge/API-9%2B-brightgreen.svg?style=flat)
 [![Build Status](https://travis-ci.org/alessandrojp/easy-checkout.svg)](https://travis-ci.org/alessandrojp/easy-checkout)
 [![Bintray](https://img.shields.io/bintray/v/alessandrojp/android/easy-checkout.svg)](https://bintray.com/alessandrojp/android/easy-checkout/view)
+[![codecov](https://codecov.io/gh/alessandrojp/easy-checkout/branch/master/graph/badge.svg)](https://codecov.io/gh/alessandrojp/easy-checkout)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 Fast and easy checkout library (Android In-App Billing) for Android apps with RxJava support.
 
-This library supports both non-consumable/consumable items and upgrading/downgrading of subscriptions. 
+This library supports both non-consumable/consumable items and upgrading/downgrading of subscriptions.
 
 For **RxJava** please check [here](https://github.com/alessandrojp/easy-checkout/tree/master/extension-rxjava).
 
@@ -20,11 +21,12 @@ The api version 5 automatically will be used only in this case.
 
 * For Eclipse users, download the latest jar version on [Bintray][] and add it as a dependency.
 
-* For Gradle users, add this into your build.gradle file:
+* For Gradle users, the library is available in the jcenter and mavenCentral. Add this into your build.gradle file:
 
 ```groovy
 repositories {
     jcenter()
+    mavenCentral()
 }
 dependencies {
     compile 'jp.alessandro.android:easy-checkout:vX.X.X'
@@ -157,7 +159,7 @@ As a result you will get a [Purchase](#purchase-object) object.
 ```java
 String itemId = "YOUR_ITEM_ID";
 
-mBillingProcessor.consume(itemId, new ConsumeItemHandler() {
+mBillingProcessor.consumePurchase(itemId, new ConsumeItemHandler() {
     @Override
     public void onSuccess() {
         // Item was consumed successfully
@@ -207,7 +209,7 @@ As a result you will get a [Purchase](#purchase-object) object through of the Pu
 ```java
 PurchaseType purchaseType = PurchaseType.IN_APP; // PurchaseType.SUBSCRIPTIONS for subscriptions
 
-mBillingProcessor.getInventory(purchaseType, new InventoryHandler() {
+mBillingProcessor.getPurchases(purchaseType, new PurchasesHandler() {
     @Override
     public void onSuccess(Purchases purchases) {
         // Do your stuff with the list of purchases
@@ -244,6 +246,23 @@ mBillingProcessor.getItemDetails(purchaseType, itemIds, new ItemDetailListHandle
     }
 });
 ```
+
+# Cancel
+* Cancel the all purchase flows. It will clear the pending purchase flows and ignore any event until a new request.<br />If you don't need the BillingProcessor instance any more, call directly [Release](#release) instead.
+<br />**Note: By canceling it will not cancel the purchase process since the purchase process is not controlled by the app.**
+
+```java
+mBillingProcessor.cancel();
+```
+
+# Release
+* Release the handlers. Once you release it, you **MUST** to create a new instance.
+<br />**Note: By releasing it will not cancel the purchase process since the purchase process is not controlled by the app.**
+
+```java
+mBillingProcessor.release();
+```
+
 As a result you will get a list of [Item](#item-object) detail objects.
 
 # Check In-App Billing service availability
