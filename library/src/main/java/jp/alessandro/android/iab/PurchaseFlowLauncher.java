@@ -34,10 +34,10 @@ import java.util.Locale;
 
 import jp.alessandro.android.iab.logger.Logger;
 
-class PurchaseFlowLauncher {
+public class PurchaseFlowLauncher {
 
     private final String mItemType;
-    private final String mSignatureBase64;
+    private final String mPublicKeyBase64;
     private final int mApiVersion;
     private final String mPackageName;
     private final Logger mLogger;
@@ -45,7 +45,7 @@ class PurchaseFlowLauncher {
 
     PurchaseFlowLauncher(BillingContext context, String itemType) {
         mItemType = itemType;
-        mSignatureBase64 = context.getSignatureBase64();
+        mPublicKeyBase64 = context.getPublicKeyBase64();
         mApiVersion = context.getApiVersion();
         mPackageName = context.getContext().getPackageName();
         mLogger = context.getLogger();
@@ -83,7 +83,7 @@ class PurchaseFlowLauncher {
     }
 
     private PendingIntent getPendingIntent(Activity activity, Bundle bundle) throws BillingException {
-        int response = getResponseCodeFromBundle(bundle);
+        int response = Util.getResponseCodeFromBundle(bundle, mLogger);
         if (response != Constants.BILLING_RESPONSE_RESULT_OK) {
             throw new BillingException(response, Constants.ERROR_MSG_UNABLE_TO_BUY);
         }
@@ -102,9 +102,10 @@ class PurchaseFlowLauncher {
     private void startBuyIntent(final Activity activity,
                                 final PendingIntent pendingIntent,
                                 int requestCode) throws BillingException {
+
+        IntentSender sender = pendingIntent.getIntentSender();
         try {
-            activity.startIntentSenderForResult(
-                    pendingIntent.getIntentSender(), requestCode, new Intent(), 0, 0, 0);
+            activity.startIntentSenderForResult(sender, requestCode, new Intent(), 0, 0, 0);
 
         } catch (IntentSender.SendIntentException e) {
             throw new BillingException(Constants.ERROR_SEND_INTENT_FAILED, e.getMessage());
@@ -118,22 +119,18 @@ class PurchaseFlowLauncher {
             throw new BillingException(
                     Constants.ERROR_BAD_RESPONSE, Constants.ERROR_MSG_RESULT_REQUEST_CODE_INVALID);
         }
-        if (data == null) {
-            throw new BillingException(
-                    Constants.ERROR_BAD_RESPONSE, Constants.ERROR_MSG_RESULT_NULL_INTENT);
-        }
-        int responseCode = getResponseCodeFromIntent(data);
+        int responseCode = Util.getResponseCodeFromIntent(data, mLogger);
         String purchaseData = data.getStringExtra(Constants.RESPONSE_INAPP_PURCHASE_DATA);
         String signature = data.getStringExtra(Constants.RESPONSE_INAPP_SIGNATURE);
-        return getPurchase(resultCode, responseCode, purchaseData, signature, data);
+        return getPurchase(resultCode, responseCode, purchaseData, signature);
     }
 
-    private Purchase getPurchase(int resultCode, int responseCode, String purchaseData,
-                                 String signature, Intent data) throws BillingException {
+    private Purchase getPurchase(int resultCode, int responseCode,
+                                 String purchaseData, String signature) throws BillingException {
         // Check the Billing response
         if (resultCode == Activity.RESULT_OK
                 && responseCode == Constants.BILLING_RESPONSE_RESULT_OK) {
-            return getPurchaseFromIntent(purchaseData, signature, data);
+            return getPurchaseFromIntent(purchaseData, signature);
         }
         // Something happened while trying to purchase the item
         switch (resultCode) {
@@ -144,78 +141,36 @@ class PurchaseFlowLauncher {
                 throw new BillingException(responseCode, Constants.ERROR_MSG_RESULT_CANCELED);
 
             default:
-                throw new BillingException(resultCode, String.format(Locale.US, Constants.ERROR_MSG_RESULT_UNKNOWN, resultCode));
+                throw new BillingException(resultCode, String.format(
+                        Locale.US, Constants.ERROR_MSG_RESULT_UNKNOWN, resultCode));
         }
     }
 
-    private Purchase getPurchaseFromIntent(String purchaseData,
-                                           String signature,
-                                           Intent data) throws BillingException {
+    private Purchase getPurchaseFromIntent(String purchaseData, String signature) throws BillingException {
 
-        printBillingResponse(purchaseData, signature, data);
+        printBillingResponse(purchaseData, signature);
         if (purchaseData == null || signature == null) {
             throw new BillingException(Constants.ERROR_PURCHASE_DATA,
                     Constants.ERROR_MSG_NULL_PURCHASE_DATA);
         }
-        if (!Security.verifyPurchase(purchaseData, mLogger, mSignatureBase64, purchaseData, signature)) {
+        if (!Security.verifyPurchase(purchaseData, mLogger, mPublicKeyBase64, purchaseData, signature)) {
             throw new BillingException(Constants.ERROR_VERIFICATION_FAILED,
                     Constants.ERROR_MSG_VERIFICATION_FAILED);
         }
         try {
             return Purchase.parseJson(purchaseData, signature);
         } catch (JSONException e) {
+            mLogger.e(Logger.TAG, e.getMessage(), e);
             throw new BillingException(Constants.ERROR_BAD_RESPONSE,
                     Constants.ERROR_MSG_BAD_RESPONSE);
         }
     }
 
-    private void printBillingResponse(String purchaseData, String dataSignature, Intent data) {
+    private void printBillingResponse(String purchaseData, String dataSignature) {
         mLogger.i(Logger.TAG, "------------- BILLING RESPONSE start -------------");
         mLogger.i(Logger.TAG, "Successful resultCode from purchase activity.");
         mLogger.i(Logger.TAG, String.format("Purchase data: %s", purchaseData));
         mLogger.i(Logger.TAG, String.format("Data signature: %s", dataSignature));
-        mLogger.i(Logger.TAG, String.format("Extras: %s", data.getExtras() != null ? data.getExtras().toString() : ""));
         mLogger.i(Logger.TAG, "------------- BILLING RESPONSE end -------------");
-    }
-
-    /**
-     * Workaround to bug where sometimes response codes come as Long instead of Integer
-     */
-    private int getResponseCodeFromIntent(Intent intent) throws BillingException {
-        Object obj = intent.getExtras().get(Constants.RESPONSE_CODE);
-        if (obj == null) {
-            mLogger.e(Logger.TAG,
-                    "Intent with no response code, assuming there is no problem (known issue).");
-            return Constants.BILLING_RESPONSE_RESULT_OK;
-        }
-        if (obj instanceof Integer) {
-            return ((Integer) obj).intValue();
-        }
-        if (obj instanceof Long) {
-            return (int) ((Long) obj).longValue();
-        }
-        mLogger.e(Logger.TAG, "Unexpected type for intent response code.");
-        throw new BillingException(Constants.ERROR_UNEXPECTED_TYPE,
-                Constants.ERROR_MSG_UNEXPECTED_INTENT_RESPONSE);
-    }
-
-    /**
-     * Workaround to bug where sometimes response codes come as Long instead of Integer
-     */
-    private int getResponseCodeFromBundle(Bundle bundle) throws BillingException {
-        Object obj = bundle.get(Constants.RESPONSE_CODE);
-        if (obj == null) {
-            mLogger.e(Logger.TAG, "Bundle with null response code, assuming there is no problem (known issue).");
-            return Constants.BILLING_RESPONSE_RESULT_OK;
-        }
-        if (obj instanceof Integer) {
-            return ((Integer) obj).intValue();
-        }
-        if (obj instanceof Long) {
-            return (int) ((Long) obj).longValue();
-        }
-        mLogger.e(Logger.TAG, "Unexpected type for bundle response.");
-        throw new BillingException(
-                Constants.ERROR_UNEXPECTED_TYPE, Constants.ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE);
     }
 }

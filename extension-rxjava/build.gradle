@@ -17,8 +17,8 @@
  */
 
 apply plugin: 'com.android.library'
-apply plugin: 'jacoco-android'
 
+apply from: rootProject.file('gradle/jacoco.gradle')
 apply from: rootProject.file('gradle/checkstyle.gradle')
 
 android {
@@ -28,7 +28,8 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+//        testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+//        multiDexEnabled true
     }
 
     buildTypes {
@@ -58,13 +59,8 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile project(':library')
-    compile dep.rxjava
-    compile dep.rxandroid
-
-    // Android Testing
-    testCompile dep.junit
-    androidTestCompile dep.testRunner
-    androidTestCompile dep.testRules
+    compile deps.rxjava
+    compile deps.rxandroid
 }
 
 android.libraryVariants.all { variant ->

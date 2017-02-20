@@ -16,9 +16,9 @@
  * Contact email: alessandro@alessandro.jp
  */
 apply plugin: 'com.android.library'
-apply plugin: 'jacoco-android'
 
 apply from: rootProject.file('gradle/checkstyle.gradle')
+apply from: rootProject.file('gradle/jacoco.gradle')
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -28,6 +28,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+        multiDexEnabled true
     }
 
     buildTypes {
@@ -52,15 +53,24 @@ android {
             }
         }
     }
+
+    packagingOptions {
+//        exclude 'mockito-extensions/org.mockito.plugins.MockMaker'
+//        exclude 'mockito-extensions/org.mockito.plugins.StackTraceCleanerProvider'
+    }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 
     // Android Testing
-    testCompile dep.junit
-    androidTestCompile dep.testRunner
-    androidTestCompile dep.testRules
+    testCompile deps.supportAnnotations
+    testCompile deps.mockito
+    testCompile deps.junit
+    testCompile deps.assertj3
+    testCompile deps.robolectric
+    testCompile deps.testRunner
+    testCompile deps.testRules
 }
 
 android.libraryVariants.all { variant ->

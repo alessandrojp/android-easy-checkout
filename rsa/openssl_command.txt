@@ -1,0 +1,8 @@
+echo '{"orderId":"GPA.1234-5678-9012-34567","packageName":"jp.alessandro.android.iab","productId":"android.test.purchased","purchaseTime":1345678900000,"purchaseState":0,"developerPayload":optional_developer_payload,"purchaseToken":"opaque-token-up-to-1000-characters","autoRenewing":true}' > receipt.json
+
+openssl genrsa -out private_key.pem 2048
+openssl rsa -in private_key.pem -pubout -outform DER -out public_key.der
+openssl pkcs8 -in private_key.pem -topk8 -nocrypt -inform DER -outform DER -out private_key.pk8
+
+openssl dgst -sha1 -sign private_key.pem -out receipt.signature receipt.json
+openssl dgst -sha1 -verify public_key.der -keyform DER -signature receipt.signature receipt.json

@@ -25,17 +25,20 @@ import com.android.vending.billing.IInAppBillingService;
 
 import org.json.JSONException;
 
-import java.util.ArrayList;
 import java.util.List;
+
+import jp.alessandro.android.iab.logger.Logger;
 
 class ItemGetter {
 
     private final int mApiVersion;
     private final String mPackageName;
+    private final Logger mLogger;
 
     ItemGetter(BillingContext context) {
         mApiVersion = context.getApiVersion();
         mPackageName = context.getContext().getPackageName();
+        mLogger = context.getLogger();
     }
 
     /**
@@ -45,45 +48,48 @@ class ItemGetter {
      * where each string is a product ID for an purchasable item.
      * See https://developer.android.com/google/play/billing/billing_integrate.html#QueryDetails
      *
-     * @param service    in-app billing service
-     * @param itemType   "inapp" or "subs"
-     * @param itemIdList a list of the item ids that you want to request
+     * @param service       in-app billing service
+     * @param itemType      "inapp" or "subs"
+     * @param requestBundle a bundle that contains the list of item ids that you want to request
      * @return
      * @throws BillingException
      */
-    public ItemDetails get(IInAppBillingService service, String itemType,
-                           ArrayList<String> itemIdList) throws BillingException {
-        Bundle bundle = new Bundle();
-        bundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIdList);
+    public ItemDetails get(IInAppBillingService service,
+                           String itemType,
+                           Bundle requestBundle) throws BillingException {
+
         try {
-            Bundle skuDetails = service.getSkuDetails(mApiVersion, mPackageName, itemType, bundle);
+            Bundle skuDetails = service.getSkuDetails(mApiVersion, mPackageName, itemType, requestBundle);
             return getItemsFromResponse(skuDetails);
         } catch (RemoteException e) {
             throw new BillingException(Constants.ERROR_REMOTE_EXCEPTION, e.getMessage());
         }
     }
 
-    private ItemDetails getItemsFromResponse(Bundle skuDetails) throws BillingException {
-        int response = skuDetails.getInt(Constants.RESPONSE_CODE);
+    private ItemDetails getItemsFromResponse(Bundle bundle) throws BillingException {
+        int response = Util.getResponseCodeFromBundle(bundle, mLogger);
         if (response == Constants.BILLING_RESPONSE_RESULT_OK) {
-            return getDetailsList(skuDetails);
+            return getDetailsList(bundle);
         } else {
             throw new BillingException(response, Constants.ERROR_MSG_GET_SKU_DETAILS);
         }
     }
 
-    private ItemDetails getDetailsList(Bundle skuDetails) throws BillingException {
-        ItemDetails itemDetails = new ItemDetails();
-        List<String> detailsList = skuDetails.getStringArrayList(Constants.RESPONSE_DETAILS_LIST);
+    private ItemDetails getDetailsList(Bundle bundle) throws BillingException {
+        List<String> detailsList = bundle.getStringArrayList(Constants.RESPONSE_DETAILS_LIST);
         if (detailsList == null) {
-            return itemDetails;
+            throw new BillingException(
+                    Constants.ERROR_UNEXPECTED_TYPE, Constants.ERROR_MSG_GET_SKU_DETAILS_RESPONSE_LIST_NULL);
         }
+        ItemDetails itemDetails = new ItemDetails();
         for (String response : detailsList) {
             try {
                 Item product = Item.parseJson(response);
                 itemDetails.put(product);
             } catch (JSONException e) {
-                throw new BillingException(Constants.ERROR_BAD_RESPONSE, e.getMessage());
+                mLogger.e(Logger.TAG, e.getMessage());
+                throw new BillingException(
+                        Constants.ERROR_BAD_RESPONSE, Constants.ERROR_MSG_BAD_RESPONSE);
             }
         }
         return itemDetails;

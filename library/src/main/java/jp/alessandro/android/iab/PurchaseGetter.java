@@ -26,19 +26,19 @@ import com.android.vending.billing.IInAppBillingService;
 
 import org.json.JSONException;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import jp.alessandro.android.iab.logger.Logger;
 
 class PurchaseGetter {
 
-    private final String mSignatureBase64;
+    private final String mPublicKeyBase64;
     private final int mApiVersion;
     private final String mPackageName;
     private final Logger mLogger;
 
     PurchaseGetter(BillingContext context) {
-        mSignatureBase64 = context.getSignatureBase64();
+        mPublicKeyBase64 = context.getPublicKeyBase64();
         mApiVersion = context.getApiVersion();
         mPackageName = context.getContext().getPackageName();
         mLogger = context.getLogger();
@@ -61,13 +61,14 @@ class PurchaseGetter {
         String continueToken = null;
         do {
             Bundle bundle = getPurchasesBundle(service, itemType, continueToken);
-            checkResponse(bundle, purchases);
+            checkResponseAndAddPurchases(bundle, purchases);
             continueToken = bundle.getString(Constants.RESPONSE_INAPP_CONTINUATION_TOKEN);
         } while (!TextUtils.isEmpty(continueToken));
         return purchases;
     }
 
-    private Bundle getPurchasesBundle(IInAppBillingService service, String itemType,
+    private Bundle getPurchasesBundle(IInAppBillingService service,
+                                      String itemType,
                                       String continueToken) throws BillingException {
         try {
             return service.getPurchases(mApiVersion, mPackageName, itemType, continueToken);
@@ -76,69 +77,90 @@ class PurchaseGetter {
         }
     }
 
-    private void checkResponse(Bundle data, Purchases purchasesList) throws BillingException {
-        int response = data.getInt(Constants.RESPONSE_CODE);
-        if (response == Constants.BILLING_RESPONSE_RESULT_OK) {
-            ArrayList<String> purchaseList =
-                    data.getStringArrayList(Constants.RESPONSE_INAPP_PURCHASE_LIST);
+    private void checkResponseAndAddPurchases(Bundle bundle, Purchases purchases) throws BillingException {
+        int response = Util.getResponseCodeFromBundle(bundle, mLogger);
 
-            ArrayList<String> signatureList =
-                    data.getStringArrayList(Constants.RESPONSE_INAPP_SIGNATURE_LIST);
-
-            checkPurchaseList(purchaseList, signatureList, purchasesList);
-        } else {
+        if (response != Constants.BILLING_RESPONSE_RESULT_OK) {
             throw new BillingException(response, Constants.ERROR_MSG_GET_PURCHASES);
         }
-    }
 
-    private void checkPurchaseList(ArrayList<String> purchaseList, ArrayList<String> signatureList,
-                                   Purchases purchasesList) throws BillingException {
-        if ((purchaseList == null) || (signatureList == null)) {
-            throw new BillingException(Constants.ERROR_PURCHASE_DATA,
-                    Constants.ERROR_MSG_GET_PURCHASES_SIGNATURE);
-        }
+        List<String> purchaseList = extractPurchaseList(bundle);
+        List<String> signatureList = extractSignatureList(bundle);
+
         if (purchaseList.size() != signatureList.size()) {
-            throw new BillingException(Constants.ERROR_PURCHASE_DATA,
-                    Constants.ERROR_MSG_GET_PURCHASES_SIGNATURE_SIZE);
+            throw new BillingException(
+                    Constants.ERROR_PURCHASE_DATA, Constants.ERROR_MSG_GET_PURCHASES_DIFFERENT_SIZE);
         }
-        verifyAllPurchases(purchaseList, signatureList, purchasesList);
+        addAllPurchases(purchaseList, signatureList, purchases);
     }
 
-    private void verifyAllPurchases(ArrayList<String> purchaseList,
-                                    ArrayList<String> signatureList,
-                                    Purchases purchasesList) throws BillingException {
+    private List<String> extractPurchaseList(Bundle bundle) throws BillingException {
+        List<String> purchaseList = bundle.getStringArrayList(Constants.RESPONSE_INAPP_PURCHASE_LIST);
+
+        if (purchaseList == null) {
+            throw new BillingException(
+                    Constants.ERROR_PURCHASE_DATA, Constants.ERROR_MSG_GET_PURCHASES_DATA_LIST);
+        }
+        return purchaseList;
+    }
+
+    private List<String> extractSignatureList(Bundle bundle) throws BillingException {
+        List<String> signatureList = bundle.getStringArrayList(Constants.RESPONSE_INAPP_SIGNATURE_LIST);
+
+        if (signatureList == null) {
+            throw new BillingException(
+                    Constants.ERROR_PURCHASE_DATA, Constants.ERROR_MSG_GET_PURCHASES_SIGNATURE_LIST);
+        }
+        return signatureList;
+    }
+
+    private void addAllPurchases(List<String> purchaseList,
+                                 List<String> signatureList,
+                                 Purchases purchases) throws BillingException {
+        int errors = 0;
         for (int i = 0; i < purchaseList.size(); i++) {
             String purchaseData = purchaseList.get(i);
             String signature = signatureList.get(i);
-            verifyBeforeAddPurchase(purchasesList, purchaseData, signature);
-        }
-    }
-
-    private void verifyBeforeAddPurchase(Purchases purchases, String purchaseData,
-                                         String signature) throws BillingException {
-        if (!TextUtils.isEmpty(purchaseData)) {
-            if (Security.verifyPurchase(purchaseData, mLogger, mSignatureBase64, purchaseData, signature)) {
-                addPurchase(purchases, purchaseData, signature);
-            } else {
-                mLogger.w(Logger.TAG, String.format(
-                        "Purchase not valid. PurchaseData: %s, signature: %s", purchaseData, signature));
+            if (!verifyBeforeAddPurchase(purchaseData, signature, purchases)) {
+                errors++;
             }
         }
+        if (errors > 0) {
+            throw new BillingException(
+                    Constants.ERROR_PURCHASE_DATA, Constants.ERROR_MSG_GET_PURCHASE_VERIFICATION_FAILED);
+        }
     }
 
-    private void addPurchase(Purchases purchases,
-                             String purchaseData,
-                             String signature) throws BillingException {
+    private boolean verifyBeforeAddPurchase(String purchaseData,
+                                            String signature,
+                                            Purchases purchases) throws BillingException {
+
+        if (Security.verifyPurchase(purchaseData, mLogger, mPublicKeyBase64, purchaseData, signature)) {
+            addPurchase(purchaseData, signature, purchases);
+            return true;
+        }
+        printPurchaseVerificationFailed(purchaseData, signature);
+        return false;
+    }
+
+    private void addPurchase(String purchaseData,
+                             String signature,
+                             Purchases purchases) throws BillingException {
         Purchase purchase;
         try {
             purchase = Purchase.parseJson(purchaseData, signature);
         } catch (JSONException e) {
-            throw new BillingException(Constants.ERROR_BAD_RESPONSE, e.getMessage());
-        }
-        if (TextUtils.isEmpty(purchase.getToken())) {
-            throw new BillingException(Constants.ERROR_PURCHASE_DATA,
-                    Constants.ERROR_MSG_PURCHASE_TOKEN);
+            mLogger.e(Logger.TAG, e.getMessage(), e);
+            throw new BillingException(Constants.ERROR_BAD_RESPONSE, Constants.ERROR_MSG_BAD_RESPONSE);
         }
         purchases.put(purchase);
+    }
+
+    private void printPurchaseVerificationFailed(String purchaseData, String dataSignature) {
+        mLogger.e(Logger.TAG, "------------- BILLING GET PURCHASES start -------------");
+        mLogger.e(Logger.TAG, Constants.ERROR_MSG_GET_PURCHASE_VERIFICATION_FAILED_WITH_PARAMS);
+        mLogger.e(Logger.TAG, String.format("Purchase data: %s", purchaseData));
+        mLogger.e(Logger.TAG, String.format("Data signature: %s", dataSignature));
+        mLogger.e(Logger.TAG, "------------- BILLING GET PURCHASES end -------------");
     }
 }
