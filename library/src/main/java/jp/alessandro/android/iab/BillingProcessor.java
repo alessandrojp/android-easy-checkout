@@ -48,6 +48,7 @@ import jp.alessandro.android.iab.response.PurchaseResponse;
 public class BillingProcessor {
 
     protected static final String WORK_THREAD_NAME = "AndroidEasyCheckoutThread";
+    protected Handler mWorkHandler;
 
     private final BillingContext mContext;
     private final SparseArray<PurchaseFlowLauncher> mPurchaseFlows;
@@ -55,7 +56,6 @@ public class BillingProcessor {
     private final Intent mServiceIntent;
 
     private PurchaseHandler mPurchaseHandler;
-    private Handler mWorkHandler;
     private Handler mMainHandler;
     private boolean mIsReleased;
 
