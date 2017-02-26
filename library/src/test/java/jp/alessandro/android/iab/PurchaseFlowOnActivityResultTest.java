@@ -21,6 +21,8 @@ package jp.alessandro.android.iab;
 import android.app.Activity;
 import android.content.Intent;
 
+import com.android.vending.billing.IInAppBillingService;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -46,7 +48,7 @@ public class PurchaseFlowOnActivityResultTest {
     }
 
     @Mock
-    BillingService mService;
+    IInAppBillingService mService;
 
     private final BillingContext mBillingContext = Util.newBillingContext(RuntimeEnvironment.application);
 

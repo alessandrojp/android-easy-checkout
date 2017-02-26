@@ -31,7 +31,7 @@ class ServiceBinder implements ServiceConnection {
 
     public interface Handler {
 
-        void onBind(BillingService service);
+        void onBind(IInAppBillingService service);
 
         void onError(BillingException exception);
     }
@@ -52,6 +52,7 @@ class ServiceBinder implements ServiceConnection {
 
     public void unbindService() {
         synchronized (this) {
+            setBinder(null);
             mContext.unbindService(this);
         }
     }
@@ -93,15 +94,15 @@ class ServiceBinder implements ServiceConnection {
         }
     }
 
-    protected void bindService(Handler handler) {
+    private void bindService(Handler handler) {
         if (mHandler != null) {
             return;
         }
+        mHandler = handler;
         try {
             boolean bound = mContext.bindService(mIntent, this, Context.BIND_AUTO_CREATE);
-            if (bound) {
-                mHandler = handler;
-            } else {
+            if (!bound) {
+                mHandler = null;
                 BillingException e = new BillingException(
                         Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
                         Constants.ERROR_MSG_BIND_SERVICE_FAILED);
@@ -131,7 +132,7 @@ class ServiceBinder implements ServiceConnection {
             @Override
             public void run() {
                 if (handler != null) {
-                    handler.onBind(new BillingService(service));
+                    handler.onBind(service);
                 }
             }
         });

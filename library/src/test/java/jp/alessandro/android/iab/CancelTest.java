@@ -20,8 +20,9 @@ package jp.alessandro.android.iab;
 
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.RemoteException;
+
+import com.android.vending.billing.IInAppBillingService;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -61,7 +62,7 @@ public class CancelTest {
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
     @Mock
-    BillingService mService;
+    IInAppBillingService mService;
     @Mock
     ServiceBinder mServiceBinder;
 
@@ -71,16 +72,10 @@ public class CancelTest {
     private Handler mWorkHandler;
 
     @Before
-    public void setUp() {
-        HandlerThread thread = new HandlerThread("AndroidIabThread");
-        thread.start();
-        // Handler to post all actions in the library
-        mWorkHandler = new Handler(thread.getLooper());
-
+    public void setUp() throws RemoteException {
         mProcessor = spy(new BillingProcessor(mContext, null));
-        mProcessor.mWorkHandler = mWorkHandler;
+        mWorkHandler = mProcessor.getWorkHandler();
 
-        doReturn(mWorkHandler).when(mProcessor).getWorkHandler();
         doReturn(true).when(mProcessor).isSupported(PurchaseType.IN_APP, mService);
         doReturn(mServiceBinder).when(mProcessor).createServiceBinder();
         doAnswer(new Answer() {

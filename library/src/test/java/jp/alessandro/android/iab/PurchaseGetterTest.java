@@ -21,6 +21,8 @@ package jp.alessandro.android.iab;
 import android.os.Bundle;
 import android.os.RemoteException;
 
+import com.android.vending.billing.IInAppBillingService;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,7 +54,7 @@ public class PurchaseGetterTest {
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
     @Mock
-    BillingService mService;
+    IInAppBillingService mService;
 
     private final BillingContext mBillingContext = Util.newBillingContext(RuntimeEnvironment.application);
 

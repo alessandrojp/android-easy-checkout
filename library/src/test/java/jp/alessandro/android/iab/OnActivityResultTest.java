@@ -23,10 +23,10 @@ import android.app.PendingIntent;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.RemoteException;
 
-import org.junit.Before;
+import com.android.vending.billing.IInAppBillingService;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -70,19 +70,11 @@ public class OnActivityResultTest {
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
     @Mock
-    BillingService mService;
+    IInAppBillingService mService;
     @Mock
     ServiceBinder mServiceBinder;
     @Mock
     Activity mActivity;
-
-    @Before
-    public void setUp() {
-        HandlerThread thread = new HandlerThread("AndroidIabThread");
-        thread.start();
-        // Handler to post all actions in the library
-        mWorkHandler = new Handler(thread.getLooper());
-    }
 
     @Test
     public void onActivityResultInAppSuccess() throws InterruptedException, RemoteException {
@@ -245,10 +237,9 @@ public class OnActivityResultTest {
             }
         };
         mProcessor = spy(new BillingProcessor(mContext, handler));
+        mWorkHandler = mProcessor.getWorkHandler();
 
         setUpProcessor(bundle, type);
-
-        doReturn(mWorkHandler).when(mProcessor).getWorkHandler();
     }
 
     private void setUpProcessor(Bundle bundle, PurchaseType type) throws RemoteException {

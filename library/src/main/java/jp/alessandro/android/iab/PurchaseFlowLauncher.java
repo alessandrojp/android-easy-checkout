@@ -70,13 +70,19 @@ public class PurchaseFlowLauncher {
         try {
             // Purchase an item
             if (oldItemIds == null || oldItemIds.isEmpty()) {
-                return service.getBuyIntent(mApiVersion,
-                        mPackageName, itemId, mItemType, developerPayload);
+                return service.getBuyIntent(
+                        mApiVersion, mPackageName, itemId, mItemType, developerPayload);
             }
             // Upgrade/downgrade of subscriptions must be done on api version 5
             // See https://developer.android.com/google/play/billing/billing_reference.html#upgrade-getBuyIntentToReplaceSkus
-            return service.getBuyIntentToReplaceSkus(BillingApi.VERSION_5.getValue(),
-                    mPackageName, oldItemIds, itemId, mItemType, developerPayload);
+            return service.getBuyIntentToReplaceSkus(
+                    BillingApi.VERSION_5.getValue(),
+                    mPackageName,
+                    oldItemIds,
+                    itemId,
+                    mItemType,
+                    developerPayload);
+
         } catch (RemoteException e) {
             throw new BillingException(Constants.ERROR_REMOTE_EXCEPTION, e.getMessage());
         }

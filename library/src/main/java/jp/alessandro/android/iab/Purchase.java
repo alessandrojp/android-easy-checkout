@@ -66,7 +66,9 @@ public class Purchase implements Parcelable {
                 obj.optInt("purchaseState"),
                 obj.optString("developerPayload"),
                 obj.optString("token", obj.optString("purchaseToken")),
-                obj.optBoolean("autoRenewing"), signature);
+                obj.optBoolean("autoRenewing"),
+                signature
+        );
     }
 
     protected Purchase(Parcel in) {

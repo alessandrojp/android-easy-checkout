@@ -31,6 +31,8 @@ import android.os.RemoteException;
 import android.text.TextUtils;
 import android.util.SparseArray;
 
+import com.android.vending.billing.IInAppBillingService;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -48,7 +50,6 @@ import jp.alessandro.android.iab.response.PurchaseResponse;
 public class BillingProcessor {
 
     protected static final String WORK_THREAD_NAME = "AndroidEasyCheckoutThread";
-    protected Handler mWorkHandler;
 
     private final BillingContext mContext;
     private final SparseArray<PurchaseFlowLauncher> mPurchaseFlows;
@@ -57,6 +58,7 @@ public class BillingProcessor {
 
     private PurchaseHandler mPurchaseHandler;
     private Handler mMainHandler;
+    private Handler mWorkHandler;
     private boolean mIsReleased;
 
     public BillingProcessor(BillingContext context, PurchaseHandler purchaseHandler) {
@@ -71,7 +73,7 @@ public class BillingProcessor {
     }
 
     /**
-     * Check if nAppBillingService is supported on the device.
+     * Check if nAppIInAppBillingService is supported on the device.
      *
      * @param context
      * @return true if it is supported
@@ -132,7 +134,7 @@ public class BillingProcessor {
             checkIfIsNotReleased();
             executeInServiceOnWorkThread(new ServiceBinder.Handler() {
                 @Override
-                public void onBind(BillingService service) {
+                public void onBind(IInAppBillingService service) {
                     try {
                         checkIfBillingIsSupported(PurchaseType.IN_APP, service);
 
@@ -202,7 +204,7 @@ public class BillingProcessor {
             checkIfIsNotReleased();
             executeInServiceOnWorkThread(new ServiceBinder.Handler() {
                 @Override
-                public void onBind(BillingService service) {
+                public void onBind(IInAppBillingService service) {
                     String type;
                     if (purchaseType == PurchaseType.SUBSCRIPTION) {
                         type = Constants.TYPE_SUBSCRIPTION;
@@ -242,7 +244,7 @@ public class BillingProcessor {
             checkIfIsNotReleased();
             executeInServiceOnWorkThread(new ServiceBinder.Handler() {
                 @Override
-                public void onBind(BillingService service) {
+                public void onBind(IInAppBillingService service) {
                     String type;
                     if (purchaseType == PurchaseType.SUBSCRIPTION) {
                         type = Constants.TYPE_SUBSCRIPTION;
@@ -284,7 +286,7 @@ public class BillingProcessor {
             checkIfIsNotReleased();
             executeInServiceOnWorkThread(new ServiceBinder.Handler() {
                 @Override
-                public void onBind(BillingService service) {
+                public void onBind(IInAppBillingService service) {
                     String type;
                     if (purchaseType == PurchaseType.SUBSCRIPTION) {
                         type = Constants.TYPE_SUBSCRIPTION;
@@ -415,9 +417,13 @@ public class BillingProcessor {
         return mWorkHandler;
     }
 
-    protected void checkIfBillingIsSupported(PurchaseType purchaseType, BillingService service) throws BillingException {
-        if (isSupported(purchaseType, service)) {
-            return;
+    protected void checkIfBillingIsSupported(PurchaseType purchaseType, IInAppBillingService service) throws BillingException {
+        try {
+            if (isSupported(purchaseType, service)) {
+                return;
+            }
+        } catch (RemoteException e) {
+            throw new BillingException(Constants.ERROR_REMOTE_EXCEPTION, e.getMessage());
         }
         if (purchaseType == PurchaseType.SUBSCRIPTION) {
             throw new BillingException(Constants.ERROR_SUBSCRIPTIONS_NOT_SUPPORTED,
@@ -433,7 +439,7 @@ public class BillingProcessor {
      * @param service
      * @return true if it is supported
      */
-    protected boolean isSupported(PurchaseType purchaseType, BillingService service) {
+    protected boolean isSupported(PurchaseType purchaseType, IInAppBillingService service) throws RemoteException {
         String type;
 
         if (purchaseType == PurchaseType.SUBSCRIPTION) {
@@ -442,28 +448,24 @@ public class BillingProcessor {
             type = Constants.TYPE_IN_APP;
         }
 
-        try {
-            int response = service.isBillingSupported(
-                    mContext.getApiVersion(),
-                    mContext.getContext().getPackageName(),
-                    type);
+        int response = service.isBillingSupported(
+                mContext.getApiVersion(),
+                mContext.getContext().getPackageName(),
+                type);
 
-            if (response == Constants.BILLING_RESPONSE_RESULT_OK) {
-                mLogger.d(Logger.TAG, "Subscription is AVAILABLE.");
-                return true;
-            }
-            mLogger.w(Logger.TAG,
-                    String.format(Locale.US, "Subscription is NOT AVAILABLE. Response: %d", response));
-        } catch (RemoteException e) {
-            mLogger.e(Logger.TAG, e.getMessage(), e);
+        if (response == Constants.BILLING_RESPONSE_RESULT_OK) {
+            mLogger.d(Logger.TAG, "Subscription is AVAILABLE.");
+            return true;
         }
+        mLogger.w(Logger.TAG,
+                String.format(Locale.US, "Subscription is NOT AVAILABLE. Response: %d", response));
         return false;
     }
 
     /**
      * Get the purchase token to be used in {@link BillingProcessor#consumePurchase(String, ConsumeItemHandler)}
      */
-    protected String getToken(BillingService service, String itemId) throws BillingException {
+    protected String getToken(IInAppBillingService service, String itemId) throws BillingException {
         PurchaseGetter getter = createPurchaseGetter();
         Purchases purchases = getter.get(service, Constants.ITEM_TYPE_INAPP);
         Purchase purchase = purchases.getByPurchaseId(itemId);
@@ -477,12 +479,6 @@ public class BillingProcessor {
 
     protected PurchaseGetter createPurchaseGetter() {
         return new PurchaseGetter(mContext);
-    }
-
-    protected Bundle createBundleItemListFromArray(ArrayList<String> itemIds) {
-        Bundle bundle = new Bundle();
-        bundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
-        return bundle;
     }
 
     protected ServiceBinder createServiceBinder() {
@@ -500,7 +496,7 @@ public class BillingProcessor {
         checkIfIsNotReleased();
         executeInServiceOnMainThread(new ServiceBinder.Handler() {
             @Override
-            public void onBind(BillingService service) {
+            public void onBind(IInAppBillingService service) {
                 try {
                     // Before launch the IAB activity, we check if subscriptions are supported.
                     checkIfBillingIsSupported(purchaseType, service);
@@ -532,7 +528,7 @@ public class BillingProcessor {
 
                 conn.getServiceAsync(new ServiceBinder.Handler() {
                     @Override
-                    public void onBind(BillingService service) {
+                    public void onBind(IInAppBillingService service) {
                         try {
                             serviceHandler.onBind(service);
                         } finally {
@@ -547,6 +543,12 @@ public class BillingProcessor {
                 });
             }
         });
+    }
+
+    private Bundle createBundleItemListFromArray(ArrayList<String> itemIds) {
+        Bundle bundle = new Bundle();
+        bundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
+        return bundle;
     }
 
     private PurchaseFlowLauncher createPurchaseFlowLauncher(PurchaseType purchaseType, int requestCode) throws BillingException {

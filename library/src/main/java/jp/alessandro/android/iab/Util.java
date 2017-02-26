@@ -38,7 +38,7 @@ class Util {
     }
 
     public static BillingContext newBillingContext(Context context) {
-        return new BillingContext(context, Constants.TEST_PUBLIC_KEY_BASE_64, BillingApi.VERSION_3, null);
+        return new BillingContext(context, Constants.TEST_PUBLIC_KEY_BASE_64, BillingApi.VERSION_3);
     }
 
     public static Intent newOkIntent() {

@@ -60,7 +60,8 @@ public class Item implements Parcelable {
                 obj.optString("description"),
                 obj.optString("price_currency_code"),
                 obj.optString("price"),
-                obj.optLong("price_amount_micros"));
+                obj.optLong("price_amount_micros")
+        );
     }
 
     protected Item(Parcel in) {
