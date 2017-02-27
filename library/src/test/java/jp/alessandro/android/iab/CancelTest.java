@@ -42,7 +42,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.PurchasesHandler;
+import jp.alessandro.android.iab.response.PurchaseResponse;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -73,7 +75,12 @@ public class CancelTest {
 
     @Before
     public void setUp() throws RemoteException {
-        mProcessor = spy(new BillingProcessor(mContext, null));
+        mProcessor = spy(new BillingProcessor(mContext, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                assertThat(response).isNotNull();
+            }
+        }));
         mWorkHandler = mProcessor.getWorkHandler();
 
         doReturn(true).when(mProcessor).isSupported(PurchaseType.IN_APP, mService);

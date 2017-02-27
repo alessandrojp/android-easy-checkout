@@ -62,6 +62,7 @@ public class BillingProcessor {
     private boolean mIsReleased;
 
     public BillingProcessor(BillingContext context, PurchaseHandler purchaseHandler) {
+        Checker.billingProcessorArguments(context, purchaseHandler);
 
         mContext = context;
         mPurchaseHandler = purchaseHandler;
@@ -368,8 +369,13 @@ public class BillingProcessor {
                 return;
             }
             mPurchaseFlows.clear();
-            mMainHandler.removeCallbacksAndMessages(null);
-            mWorkHandler.removeCallbacksAndMessages(null);
+
+            if (mMainHandler != null) {
+                mMainHandler.removeCallbacksAndMessages(null);
+            }
+            if (mWorkHandler != null) {
+                mWorkHandler.removeCallbacksAndMessages(null);
+            }
         }
     }
 
@@ -382,21 +388,14 @@ public class BillingProcessor {
     public void release() {
         synchronized (this) {
             mIsReleased = true;
-            mPurchaseHandler = null;
             mPurchaseFlows.clear();
 
-            Handler mainThread = mMainHandler;
-            Handler workHandler = mWorkHandler;
-
-            mMainHandler = null;
-            mWorkHandler = null;
-
-            if (mainThread != null) {
-                mainThread.removeCallbacksAndMessages(null);
+            if (mMainHandler != null) {
+                mMainHandler.removeCallbacksAndMessages(null);
             }
-            if (workHandler != null) {
-                workHandler.removeCallbacksAndMessages(null);
-                workHandler.getLooper().quit();
+            if (mWorkHandler != null) {
+                mWorkHandler.removeCallbacksAndMessages(null);
+                mWorkHandler.getLooper().quit();
             }
         }
     }
@@ -453,7 +452,7 @@ public class BillingProcessor {
         if (mWorkHandler == null) {
             HandlerThread thread = new HandlerThread(WORK_THREAD_NAME);
             thread.start();
-            return mWorkHandler = new Handler(thread.getLooper());
+            mWorkHandler = new Handler(thread.getLooper());
         }
         return mWorkHandler;
     }
@@ -463,7 +462,7 @@ public class BillingProcessor {
      */
     private Handler getMainHandler() {
         if (mMainHandler == null) {
-            return mMainHandler = new Handler(Looper.getMainLooper());
+            mMainHandler = new Handler(Looper.getMainLooper());
         }
         return mMainHandler;
     }
@@ -588,9 +587,7 @@ public class BillingProcessor {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                if (mPurchaseHandler != null) {
-                    mPurchaseHandler.call(new PurchaseResponse(purchase, null));
-                }
+                mPurchaseHandler.call(new PurchaseResponse(purchase, null));
             }
         });
     }
@@ -599,9 +596,7 @@ public class BillingProcessor {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                if (mPurchaseHandler != null) {
-                    mPurchaseHandler.call(new PurchaseResponse(null, e));
-                }
+                mPurchaseHandler.call(new PurchaseResponse(null, e));
             }
         });
     }

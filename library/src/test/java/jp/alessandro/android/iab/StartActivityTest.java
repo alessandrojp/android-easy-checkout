@@ -45,7 +45,9 @@ import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.StartActivityHandler;
+import jp.alessandro.android.iab.response.PurchaseResponse;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -62,6 +64,12 @@ public class StartActivityTest {
     private BillingProcessor mProcessor;
 
     private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
+    private final PurchaseHandler mPurchaseHandler = new PurchaseHandler() {
+        @Override
+        public void call(PurchaseResponse response) {
+            assertThat(response).isNotNull();
+        }
+    };
 
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
@@ -141,7 +149,7 @@ public class StartActivityTest {
 
         setServiceStub(stubBundle);
 
-        mProcessor = spy(new BillingProcessor(mContext, null));
+        mProcessor = spy(new BillingProcessor(mContext, mPurchaseHandler));
 
         mProcessor.updateSubscription(mActivity, requestCode, oldItemIds, Constants.TEST_PRODUCT_ID, Constants.TEST_DEVELOPER_PAYLOAD,
                 new StartActivityHandler() {
@@ -260,7 +268,7 @@ public class StartActivityTest {
         stubBundle.putBoolean(ServiceStubCreater.THROW_REMOTE_EXCEPTION_ON_BILLING_SUPPORTED, true);
         setServiceStub(stubBundle);
 
-        mProcessor = new BillingProcessor(mContext, null);
+        mProcessor = new BillingProcessor(mContext, mPurchaseHandler);
         mProcessor.startPurchase(mActivity, requestCode, Constants.TEST_PRODUCT_ID, type, Constants.TEST_DEVELOPER_PAYLOAD,
                 new StartActivityHandler() {
                     @Override
@@ -307,7 +315,7 @@ public class StartActivityTest {
         stubBundle.putInt(ServiceStubCreater.IN_APP_BILLING_SUPPORTED, 1);
         setServiceStub(stubBundle);
 
-        mProcessor = spy(new BillingProcessor(mContext, null));
+        mProcessor = spy(new BillingProcessor(mContext, mPurchaseHandler));
         mProcessor.startPurchase(mActivity, requestCode, Constants.TEST_PRODUCT_ID, type, Constants.TEST_DEVELOPER_PAYLOAD,
                 new StartActivityHandler() {
                     @Override
@@ -338,7 +346,7 @@ public class StartActivityTest {
         stubBundle.putBoolean(ServiceStubCreater.THROW_REMOTE_EXCEPTION_ON_GET_ACTIONS, true);
         setServiceStub(stubBundle);
 
-        mProcessor = new BillingProcessor(mContext, null);
+        mProcessor = new BillingProcessor(mContext, mPurchaseHandler);
         mProcessor.startPurchase(mActivity, requestCode, Constants.TEST_PRODUCT_ID, type, Constants.TEST_DEVELOPER_PAYLOAD,
                 new StartActivityHandler() {
                     @Override
@@ -440,7 +448,7 @@ public class StartActivityTest {
         stubBundle.putParcelable(ServiceStubCreater.GET_BUY_INTENT, bundle);
         setServiceStub(stubBundle);
 
-        mProcessor = spy(new BillingProcessor(mContext, null));
+        mProcessor = spy(new BillingProcessor(mContext, mPurchaseHandler));
     }
 
     private void setServiceStub(final Bundle stubBundle) {

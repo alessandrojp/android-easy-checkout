@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import jp.alessandro.android.iab.handler.ConsumeItemHandler;
 import jp.alessandro.android.iab.handler.InventoryHandler;
 import jp.alessandro.android.iab.handler.ItemDetailsHandler;
+import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.PurchasesHandler;
 import jp.alessandro.android.iab.handler.StartActivityHandler;
 
@@ -37,6 +38,12 @@ import jp.alessandro.android.iab.handler.StartActivityHandler;
 class Checker {
 
     private Checker() {
+    }
+
+    public static void billingProcessorArguments(BillingContext context, PurchaseHandler handler) {
+        if (context == null || handler == null) {
+            throw new IllegalArgumentException(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
     }
 
     public static void startActivityArguments(Activity activity,

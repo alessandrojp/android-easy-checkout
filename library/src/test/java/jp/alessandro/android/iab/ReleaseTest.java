@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jp.alessandro.android.iab.handler.ConsumeItemHandler;
+import jp.alessandro.android.iab.handler.PurchaseHandler;
+import jp.alessandro.android.iab.response.PurchaseResponse;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
@@ -46,7 +48,12 @@ public class ReleaseTest {
 
     @Before
     public void setUp() {
-        mProcessor = new BillingProcessor(mContext, null);
+        mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                assertThat(response).isNotNull();
+            }
+        });
     }
 
     @Test

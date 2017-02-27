@@ -48,7 +48,9 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.StartActivityHandler;
+import jp.alessandro.android.iab.response.PurchaseResponse;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,7 +83,35 @@ public class BillingProcessorTest {
 
     @Before
     public void setUp() {
-        mProcessor = spy(new BillingProcessor(mContext, null));
+        mProcessor = spy(new BillingProcessor(mContext, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                assertThat(response).isNotNull();
+            }
+        }));
+    }
+
+    @Test
+    public void constructorWithContextNull() {
+        try {
+            mProcessor = new BillingProcessor(null, new PurchaseHandler() {
+                @Override
+                public void call(PurchaseResponse response) {
+                    new IllegalStateException();
+                }
+            });
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
+    }
+
+    @Test
+    public void constructorWithHandlerNull() {
+        try {
+            mProcessor = new BillingProcessor(mContext, null);
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
     }
 
     @Test

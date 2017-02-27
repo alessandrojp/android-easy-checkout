@@ -44,6 +44,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import jp.alessandro.android.iab.handler.ConsumeItemHandler;
+import jp.alessandro.android.iab.handler.PurchaseHandler;
+import jp.alessandro.android.iab.response.PurchaseResponse;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -61,6 +63,12 @@ public class ConsumePurchaseTest {
     private BillingProcessor mProcessor;
 
     private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
+    private final PurchaseHandler mPurchaseHandler = new PurchaseHandler() {
+        @Override
+        public void call(PurchaseResponse response) {
+            assertThat(response).isNotNull();
+        }
+    };
 
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
@@ -72,7 +80,7 @@ public class ConsumePurchaseTest {
 
     @Before
     public void setUp() {
-        mProcessor = spy(new BillingProcessor(mContext, null));
+        mProcessor = spy(new BillingProcessor(mContext, mPurchaseHandler));
         mWorkHandler = mProcessor.getWorkHandler();
     }
 
@@ -280,7 +288,7 @@ public class ConsumePurchaseTest {
         final CountDownLatch latch = new CountDownLatch(1);
 
         BillingContext context = DataCreator.newBillingContext(mock(Context.class));
-        mProcessor = spy(new BillingProcessor(context, null));
+        mProcessor = spy(new BillingProcessor(context, mPurchaseHandler));
         mWorkHandler = mProcessor.getWorkHandler();
 
         mProcessor.consume(Constants.TEST_PRODUCT_ID, new ConsumeItemHandler() {

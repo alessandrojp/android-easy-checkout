@@ -140,6 +140,102 @@ public class OnActivityResultTest {
         latch.await(15, TimeUnit.SECONDS);
     }
 
+    @Test
+    public void onActivityResultReleaseInApp() throws InterruptedException, RemoteException {
+        onActivityResultWithRelease(PurchaseType.IN_APP);
+    }
+
+    @Test
+    public void onActivityResultReleaseSubscription() throws InterruptedException, RemoteException {
+        onActivityResultWithRelease(PurchaseType.SUBSCRIPTION);
+    }
+
+    private void onActivityResultWithRelease(PurchaseType type) throws InterruptedException, RemoteException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final int requestCode = 1001;
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(mContext.getContext(), 1, new Intent(), 0);
+        Bundle bundle = new Bundle();
+        bundle.putLong(Constants.RESPONSE_CODE, 0L);
+        bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
+
+        PurchaseHandler handler = new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                throw new IllegalStateException();
+            }
+        };
+        mProcessor = spy(new BillingProcessor(mContext, handler));
+
+        setUpProcessor(bundle, type);
+        mProcessor.startPurchase(mActivity,
+                requestCode,
+                Constants.TEST_PRODUCT_ID,
+                type,
+                Constants.TEST_DEVELOPER_PAYLOAD,
+                new StartActivityHandler() {
+                    @Override
+                    public void onSuccess() {
+                        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent())).isTrue();
+                        mProcessor.release();
+                    }
+
+                    @Override
+                    public void onError(BillingException e) {
+                        throw new IllegalStateException();
+                    }
+                });
+        latch.await(5, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void onActivityResultCancelInApp() throws InterruptedException, RemoteException {
+        onActivityResultWithCancel(PurchaseType.IN_APP);
+    }
+
+    @Test
+    public void onActivityResultCancelSubscription() throws InterruptedException, RemoteException {
+        onActivityResultWithCancel(PurchaseType.SUBSCRIPTION);
+    }
+
+    private void onActivityResultWithCancel(PurchaseType type) throws InterruptedException, RemoteException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final int requestCode = 1001;
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(mContext.getContext(), 1, new Intent(), 0);
+        Bundle bundle = new Bundle();
+        bundle.putLong(Constants.RESPONSE_CODE, 0L);
+        bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
+
+        PurchaseHandler handler = new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                throw new IllegalStateException();
+            }
+        };
+        mProcessor = spy(new BillingProcessor(mContext, handler));
+
+        setUpProcessor(bundle, type);
+        mProcessor.startPurchase(mActivity,
+                requestCode,
+                Constants.TEST_PRODUCT_ID,
+                type,
+                Constants.TEST_DEVELOPER_PAYLOAD,
+                new StartActivityHandler() {
+                    @Override
+                    public void onSuccess() {
+                        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent())).isTrue();
+                        mProcessor.cancel();
+                    }
+
+                    @Override
+                    public void onError(BillingException e) {
+                        throw new IllegalStateException();
+                    }
+                });
+        latch.await(5, TimeUnit.SECONDS);
+    }
+
     private void onActivityResultSignatureVerificationFailed(PurchaseType type) throws InterruptedException, RemoteException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int requestCode = 1001;

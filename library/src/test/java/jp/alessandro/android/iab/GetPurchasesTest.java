@@ -42,7 +42,9 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.PurchasesHandler;
+import jp.alessandro.android.iab.response.PurchaseResponse;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -76,7 +78,12 @@ public class GetPurchasesTest {
 
     @Before
     public void setUp() {
-        mProcessor = spy(new BillingProcessor(mContext, null));
+        mProcessor = spy(new BillingProcessor(mContext, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                assertThat(response).isNotNull();
+            }
+        }));
         mWorkHandler = mProcessor.getWorkHandler();
     }
 
@@ -174,6 +181,35 @@ public class GetPurchasesTest {
         } catch (IllegalArgumentException e) {
             assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
         }
+    }
+
+    @Test
+    public void getPurchasesAndCancel() throws InterruptedException, RemoteException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final int size = 10;
+        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
+
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
+
+        IInAppBillingService.Stub stub = new ServiceStubCreater().create(stubBundle);
+        mShadowApplication.setComponentNameAndServiceForBindService(mComponentName, stub);
+
+        mProcessor.getPurchases(PurchaseType.SUBSCRIPTION, new PurchasesHandler() {
+            @Override
+            public void onSuccess(Purchases purchases) {
+                mProcessor.cancel();
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(BillingException e) {
+                throw new IllegalStateException(e);
+            }
+        });
+        shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+
+        latch.await(5, TimeUnit.SECONDS);
     }
 
     private void getPurchases(final PurchaseType type) throws InterruptedException {
