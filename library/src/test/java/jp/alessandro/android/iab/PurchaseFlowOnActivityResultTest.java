@@ -50,7 +50,7 @@ public class PurchaseFlowOnActivityResultTest {
     @Mock
     IInAppBillingService mService;
 
-    private final BillingContext mBillingContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final BillingContext mBillingContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
 
     @Test
     public void purchaseJsonDataBroken() {
@@ -58,7 +58,7 @@ public class PurchaseFlowOnActivityResultTest {
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
         Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_BROKEN, Security.signData(Constants.TEST_JSON_BROKEN));
+                Constants.TEST_JSON_BROKEN, DataSigner.sign(Constants.TEST_JSON_BROKEN));
 
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
@@ -90,7 +90,7 @@ public class PurchaseFlowOnActivityResultTest {
         int requestCode = 0;
         int resultCode = 3;
         Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+                Constants.TEST_JSON_RECEIPT, DataSigner.sign(Constants.TEST_JSON_RECEIPT));
 
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
@@ -155,7 +155,7 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent("", Security.signData(Constants.TEST_JSON_RECEIPT));
+        Intent intent = PurchaseFlowOnActivityResultTest.newIntent("", DataSigner.sign(Constants.TEST_JSON_RECEIPT));
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
         checkIntent(launcher,
@@ -203,7 +203,7 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(null, Security.signData(Constants.TEST_JSON_RECEIPT));
+        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(null, DataSigner.sign(Constants.TEST_JSON_RECEIPT));
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
         checkIntent(launcher,
@@ -234,7 +234,7 @@ public class PurchaseFlowOnActivityResultTest {
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
         Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+                Constants.TEST_JSON_RECEIPT, DataSigner.sign(Constants.TEST_JSON_RECEIPT));
 
         intent.putExtra(Constants.RESPONSE_CODE, 0L);
 
@@ -247,7 +247,7 @@ public class PurchaseFlowOnActivityResultTest {
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
         Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+                Constants.TEST_JSON_RECEIPT, DataSigner.sign(Constants.TEST_JSON_RECEIPT));
 
         intent.putExtra(Constants.RESPONSE_CODE, -1001);
 
@@ -260,7 +260,7 @@ public class PurchaseFlowOnActivityResultTest {
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
         Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+                Constants.TEST_JSON_RECEIPT, DataSigner.sign(Constants.TEST_JSON_RECEIPT));
 
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
@@ -273,7 +273,7 @@ public class PurchaseFlowOnActivityResultTest {
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
         Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+                Constants.TEST_JSON_RECEIPT, DataSigner.sign(Constants.TEST_JSON_RECEIPT));
 
         intent.putExtra(Constants.RESPONSE_CODE, "0");
 
@@ -291,7 +291,7 @@ public class PurchaseFlowOnActivityResultTest {
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
         Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+                Constants.TEST_JSON_RECEIPT, DataSigner.sign(Constants.TEST_JSON_RECEIPT));
 
         checkIntent(launcher, requestCode, resultCode, intent, -1, null);
     }

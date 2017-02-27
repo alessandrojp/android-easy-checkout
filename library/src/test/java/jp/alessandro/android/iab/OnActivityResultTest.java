@@ -64,7 +64,7 @@ public class OnActivityResultTest {
     private Handler mWorkHandler;
     private BillingProcessor mProcessor;
 
-    private final BillingContext mContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
 
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
@@ -129,7 +129,7 @@ public class OnActivityResultTest {
                 new StartActivityHandler() {
                     @Override
                     public void onSuccess() {
-                        assertThat(mProcessor.onActivityResult(requestCode, -1, Util.newOkIntent())).isTrue();
+                        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent())).isTrue();
                     }
 
                     @Override
@@ -153,7 +153,7 @@ public class OnActivityResultTest {
                 new StartActivityHandler() {
                     @Override
                     public void onSuccess() {
-                        Intent intent = Util.newIntent(0, Constants.TEST_JSON_RECEIPT, "");
+                        Intent intent = DataCreator.newIntent(0, Constants.TEST_JSON_RECEIPT, "");
                         assertThat(mProcessor.onActivityResult(requestCode, -1, intent)).isTrue();
                     }
 
@@ -178,7 +178,7 @@ public class OnActivityResultTest {
                 new StartActivityHandler() {
                     @Override
                     public void onSuccess() {
-                        assertThat(mProcessor.onActivityResult(1002, -1, Util.newOkIntent())).isFalse();
+                        assertThat(mProcessor.onActivityResult(1002, -1, DataCreator.newOkIntent())).isFalse();
                         latch.countDown();
                     }
 
@@ -268,7 +268,7 @@ public class OnActivityResultTest {
             @Override
             public void run() {
                 try {
-                    Intent intent = Util.newIntent(0, Constants.TEST_JSON_RECEIPT, "");
+                    Intent intent = DataCreator.newIntent(0, Constants.TEST_JSON_RECEIPT, "");
                     mProcessor.onActivityResult(requestCode, -1, intent);
                 } catch (IllegalStateException e) {
                     assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_METHOD_MUST_BE_CALLED_ON_UI_THREAD);

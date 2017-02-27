@@ -75,7 +75,7 @@ class ServiceBinder implements ServiceConnection {
         setBinder(null);
     }
 
-    protected void setBinder(android.os.IBinder binder) {
+    private void setBinder(android.os.IBinder binder) {
         IInAppBillingService service = IInAppBillingService.Stub.asInterface(binder);
         Handler handler = mHandler;
         mHandler = null;
@@ -95,9 +95,6 @@ class ServiceBinder implements ServiceConnection {
     }
 
     private void bindService(Handler handler) {
-        if (mHandler != null) {
-            return;
-        }
         mHandler = handler;
         try {
             boolean bound = mContext.bindService(mIntent, this, Context.BIND_AUTO_CREATE);
@@ -106,34 +103,43 @@ class ServiceBinder implements ServiceConnection {
                 BillingException e = new BillingException(
                         Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
                         Constants.ERROR_MSG_BIND_SERVICE_FAILED);
+
                 postBinderError(e, handler);
             }
-        } catch (NullPointerException e1) {
-            mLogger.e(Logger.TAG, e1.getMessage());
-
-            // Meizu M3s devices may throw a NPE
-            BillingException e = new BillingException(
-                    Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
-                    Constants.ERROR_MSG_BIND_SERVICE_FAILED_NPE);
-            postBinderError(e, handler);
-        } catch (IllegalArgumentException e2) {
-            mLogger.e(Logger.TAG, e2.getMessage());
-
-            // Some devices may throw IllegalArgumentException
-            BillingException e = new BillingException(
-                    Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
-                    Constants.ERROR_MSG_BIND_SERVICE_FAILED_ILLEGAL_ARGUMENT);
-            postBinderError(e, handler);
+        } catch (NullPointerException e) {
+            onNullPointerException(e, handler);
+        } catch (IllegalArgumentException e) {
+            onIllegalArgumentException(e, handler);
         }
+    }
+
+    private void onNullPointerException(NullPointerException exception, Handler handler) {
+        mLogger.e(Logger.TAG, exception.getMessage());
+
+        // Meizu M3s devices may throw a NPE
+        BillingException e = new BillingException(
+                Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
+                Constants.ERROR_MSG_BIND_SERVICE_FAILED_NPE);
+
+        postBinderError(e, handler);
+    }
+
+    private void onIllegalArgumentException(IllegalArgumentException exception, Handler handler) {
+        mLogger.e(Logger.TAG, exception.getMessage());
+
+        // Some devices may throw IllegalArgumentException
+        BillingException e = new BillingException(
+                Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION,
+                Constants.ERROR_MSG_BIND_SERVICE_FAILED_ILLEGAL_ARGUMENT);
+
+        postBinderError(e, handler);
     }
 
     private void postBinder(final IInAppBillingService service, final Handler handler) {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                if (handler != null) {
-                    handler.onBind(service);
-                }
+                handler.onBind(service);
             }
         });
     }
@@ -142,9 +148,7 @@ class ServiceBinder implements ServiceConnection {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                if (handler != null) {
-                    handler.onError(exception);
-                }
+                handler.onError(exception);
             }
         });
     }

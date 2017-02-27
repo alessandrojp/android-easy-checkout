@@ -67,7 +67,7 @@ public class GetPurchasesTest {
     @Mock
     Activity mActivity;
 
-    private final BillingContext mContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
     private final ShadowApplication mShadowApplication = shadowOf(RuntimeEnvironment.application);
     private final ComponentName mComponentName = mock(ComponentName.class);
 
@@ -115,7 +115,7 @@ public class GetPurchasesTest {
     public void getPurchasesAndReleaseAndGetPurchasesAgain() throws InterruptedException, RemoteException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int size = 10;
-        Bundle responseBundle = Util.createPurchaseBundle(0, 0, size, null);
+        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
 
         Bundle stubBundle = new Bundle();
         stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
@@ -148,11 +148,39 @@ public class GetPurchasesTest {
         latch.await(15, TimeUnit.SECONDS);
     }
 
+    @Test
+    public void getPurchasesWithPurchaseTypeNull() {
+        try {
+            mProcessor.getPurchases(null, new PurchasesHandler() {
+                @Override
+                public void onSuccess(Purchases purchases) {
+                    throw new IllegalStateException();
+                }
+
+                @Override
+                public void onError(BillingException e) {
+                    throw new IllegalStateException();
+                }
+            });
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
+    }
+
+    @Test
+    public void getPurchasesWithHandlerNull() {
+        try {
+            mProcessor.getPurchases(PurchaseType.IN_APP, null);
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
+    }
+
     private void getPurchases(final PurchaseType type) throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int size = 10;
 
-        Bundle responseBundle = Util.createPurchaseBundle(0, 0, size, null);
+        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
         setServiceStub(responseBundle);
 
         mProcessor.getPurchases(type, new PurchasesHandler() {

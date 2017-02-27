@@ -82,7 +82,7 @@ public class ServiceTest {
         final CountDownLatch latch = new CountDownLatch(1);
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
-        BillingContext context = Util.newBillingContext(mock(Context.class));
+        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
         ServiceBinder conn = new ServiceBinder(context, intent);
 
         when(context.getContext().bindService(
@@ -112,7 +112,7 @@ public class ServiceTest {
         final CountDownLatch latch = new CountDownLatch(1);
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
-        BillingContext context = Util.newBillingContext(mock(Context.class));
+        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
         ServiceBinder conn = new ServiceBinder(context, intent);
 
         when(context.getContext().bindService(
@@ -142,7 +142,7 @@ public class ServiceTest {
         final CountDownLatch latch = new CountDownLatch(1);
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
-        BillingContext context = Util.newBillingContext(mock(Context.class));
+        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
         ServiceBinder conn = new ServiceBinder(context, intent);
 
         when(context.getContext().bindService(
@@ -172,7 +172,7 @@ public class ServiceTest {
         final CountDownLatch latch = new CountDownLatch(1);
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
-        BillingContext context = Util.newBillingContext(mock(Context.class));
+        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
         ServiceBinder conn = new ServiceBinder(context, intent);
 
         when(context.getContext().bindService(
@@ -205,7 +205,7 @@ public class ServiceTest {
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
         final ServiceBinder conn = new ServiceBinder(
-                Util.newBillingContext(RuntimeEnvironment.application), intent);
+                DataCreator.newBillingContext(RuntimeEnvironment.application), intent);
 
         conn.getServiceAsync(new ServiceBinder.Handler() {
             @Override
@@ -230,7 +230,7 @@ public class ServiceTest {
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
         final ServiceBinder conn = new ServiceBinder(
-                Util.newBillingContext(RuntimeEnvironment.application), intent);
+                DataCreator.newBillingContext(RuntimeEnvironment.application), intent);
 
         conn.getServiceAsync(new ServiceBinder.Handler() {
             @Override
@@ -256,7 +256,7 @@ public class ServiceTest {
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
         final ServiceBinder conn = new ServiceBinder(
-                Util.newBillingContext(RuntimeEnvironment.application), intent);
+                DataCreator.newBillingContext(RuntimeEnvironment.application), intent);
 
         conn.getServiceAsync(new ServiceBinder.Handler() {
             @Override
@@ -281,7 +281,7 @@ public class ServiceTest {
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
         final ServiceBinder conn = new ServiceBinder(
-                Util.newBillingContext(RuntimeEnvironment.application), intent);
+                DataCreator.newBillingContext(RuntimeEnvironment.application), intent);
 
         ServiceBinder.Handler handler = new ServiceBinder.Handler() {
             @Override
@@ -308,7 +308,7 @@ public class ServiceTest {
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
         final ServiceBinder conn = new ServiceBinder(
-                Util.newBillingContext(RuntimeEnvironment.application), intent);
+                DataCreator.newBillingContext(RuntimeEnvironment.application), intent);
 
         ServiceBinder.Handler handler = new ServiceBinder.Handler() {
             @Override

@@ -1,19 +1,19 @@
 /*
- *  Copyright (C) 2016 Alessandro Yuichi Okimoto
+ * Copyright (C) 2016 Alessandro Yuichi Okimoto
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- *  Contact email: alessandro@alessandro.jp
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Contact email: alessandro@alessandro.jp
  */
 
 package jp.alessandro.android.iab;
@@ -26,15 +26,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import jp.alessandro.android.iab.logger.Logger;
-
 /**
- * Created by Alessandro Yuichi Okimoto on 2017/02/19.
+ * Created by Alessandro Yuichi Okimoto on 2017/02/26.
  */
 
-class Util {
+public class DataCreator {
 
-    private Util() {
+    private DataCreator() {
     }
 
     public static BillingContext newBillingContext(Context context) {
@@ -42,7 +40,7 @@ class Util {
     }
 
     public static Intent newOkIntent() {
-        return newIntent(0, Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+        return newIntent(0, Constants.TEST_JSON_RECEIPT, DataSigner.sign(Constants.TEST_JSON_RECEIPT));
     }
 
     public static Intent newIntent(int responseCode, String data, String signature) {
@@ -61,7 +59,7 @@ class Util {
             if (i == randomIndex) {
                 signatures.add("signature");
             } else {
-                signatures.add(Security.signData(purchaseData.get(i)));
+                signatures.add(DataSigner.sign(purchaseData.get(i)));
             }
         }
         return signatures;
@@ -70,13 +68,13 @@ class Util {
     public static ArrayList<String> createSignatureArray(List<String> purchaseData) {
         ArrayList<String> signatures = new ArrayList<>();
         for (String data : purchaseData) {
-            signatures.add(Security.signData(data));
+            signatures.add(DataSigner.sign(data));
         }
         return signatures;
     }
 
     public static Bundle createPurchaseBundle(int responseCode, int startIndex, int size, String continuationString) {
-        ArrayList<String> purchaseArray = Util.createPurchaseJsonArray(startIndex, size);
+        ArrayList<String> purchaseArray = DataCreator.createPurchaseJsonArray(startIndex, size);
         Bundle bundle = new Bundle();
         bundle.putInt(Constants.RESPONSE_CODE, responseCode);
         bundle.putStringArrayList(Constants.RESPONSE_INAPP_PURCHASE_LIST, purchaseArray);
@@ -87,7 +85,7 @@ class Util {
     }
 
     public static Bundle createPurchaseWithNoTokenBundle(int responseCode, int startIndex, int size, String continuationString) {
-        ArrayList<String> purchaseArray = Util.createPurchaseWithNoTokenJsonArray(startIndex, size);
+        ArrayList<String> purchaseArray = DataCreator.createPurchaseWithNoTokenJsonArray(startIndex, size);
         Bundle bundle = new Bundle();
         bundle.putInt(Constants.RESPONSE_CODE, responseCode);
         bundle.putStringArrayList(Constants.RESPONSE_INAPP_PURCHASE_LIST, purchaseArray);
@@ -141,42 +139,5 @@ class Util {
 
     public static int getRandomIndex(int size) {
         return (int) (Math.random() * size);
-    }
-
-    public static int getResponseCodeFromBundle(Bundle bundle, Logger logger) throws BillingException {
-        if (bundle == null) {
-            logger.e(Logger.TAG, Constants.ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE_NULL);
-            throw new BillingException(
-                    Constants.ERROR_UNEXPECTED_TYPE, Constants.ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE_NULL);
-        }
-        return Util.getResponseCode(bundle.get(Constants.RESPONSE_CODE), logger);
-    }
-
-    public static int getResponseCodeFromIntent(Intent intent, Logger logger) throws BillingException {
-        if (intent == null) {
-            throw new BillingException(
-                    Constants.ERROR_UNEXPECTED_TYPE, Constants.ERROR_MSG_RESULT_NULL_INTENT);
-        }
-        return Util.getResponseCode(intent.getExtras().get(Constants.RESPONSE_CODE), logger);
-    }
-
-    /**
-     * Workaround to bug where sometimes response codes come as Long instead of Integer
-     */
-    private static int getResponseCode(Object obj, Logger logger) throws BillingException {
-        if (obj == null) {
-            logger.e(Logger.TAG,
-                    "Intent with no response code, assuming there is no problem (known issue).");
-            return Constants.BILLING_RESPONSE_RESULT_OK;
-        }
-        if (obj instanceof Integer) {
-            return ((Integer) obj).intValue();
-        }
-        if (obj instanceof Long) {
-            return (int) ((Long) obj).longValue();
-        }
-        logger.e(Logger.TAG, "Unexpected type for intent response code.");
-        throw new BillingException(
-                Constants.ERROR_UNEXPECTED_TYPE, Constants.ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE);
     }
 }

@@ -61,7 +61,7 @@ public class StartActivityTest {
 
     private BillingProcessor mProcessor;
 
-    private final BillingContext mContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
 
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
@@ -167,6 +167,89 @@ public class StartActivityTest {
     @Test
     public void subscriptionIsSupportedRemoteException() throws InterruptedException, RemoteException {
         isSupportedRemoteException(PurchaseType.SUBSCRIPTION);
+    }
+
+    @Test
+    public void startPurchaseWithActivityNull() throws RemoteException {
+        final int requestCode = 1001;
+        setUpStartPurchase();
+        try {
+            mProcessor.startPurchase(null, requestCode, Constants.TEST_PRODUCT_ID, PurchaseType.IN_APP, Constants.TEST_DEVELOPER_PAYLOAD,
+                    new StartActivityHandler() {
+                        @Override
+                        public void onSuccess() {
+                            throw new IllegalStateException();
+                        }
+
+                        @Override
+                        public void onError(BillingException e) {
+                            throw new IllegalStateException();
+                        }
+                    });
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
+    }
+
+    @Test
+    public void startPurchaseWithItemIdNull() throws RemoteException {
+        final int requestCode = 1001;
+        setUpStartPurchase();
+        try {
+            mProcessor.startPurchase(mActivity, requestCode, null, PurchaseType.IN_APP, Constants.TEST_DEVELOPER_PAYLOAD,
+                    new StartActivityHandler() {
+                        @Override
+                        public void onSuccess() {
+                            throw new IllegalStateException();
+                        }
+
+                        @Override
+                        public void onError(BillingException e) {
+                            throw new IllegalStateException();
+                        }
+                    });
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
+    }
+
+    @Test
+    public void startPurchaseWithPurchaseTypeNull() throws RemoteException {
+        final int requestCode = 1001;
+        setUpStartPurchase();
+        try {
+            mProcessor.startPurchase(mActivity, requestCode, Constants.TEST_PRODUCT_ID, null, Constants.TEST_DEVELOPER_PAYLOAD,
+                    new StartActivityHandler() {
+                        @Override
+                        public void onSuccess() {
+                            throw new IllegalStateException();
+                        }
+
+                        @Override
+                        public void onError(BillingException e) {
+                            throw new IllegalStateException();
+                        }
+                    });
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
+    }
+
+    @Test
+    public void startPurchaseWithHandlerNull() throws RemoteException {
+        final int requestCode = 1001;
+        setUpStartPurchase();
+        try {
+            mProcessor.startPurchase(
+                    mActivity,
+                    requestCode,
+                    Constants.TEST_PRODUCT_ID,
+                    PurchaseType.IN_APP,
+                    Constants.TEST_DEVELOPER_PAYLOAD,
+                    null);
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
     }
 
     private void isSupportedRemoteException(PurchaseType type) throws InterruptedException, RemoteException {

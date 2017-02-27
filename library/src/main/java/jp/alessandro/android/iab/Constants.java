@@ -130,7 +130,7 @@ public class Constants {
     public static final String ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE = "***BUG*** Unexpected type for bundle response code.";
     public static final String ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE_NULL = "***BUG*** Bundle response is null.";
     public static final String ERROR_MSG_UPDATE_ARGUMENT_MISSING = "Argument oldItemList cannot be null or empty.";
-
+    public static final String ERROR_MSG_ARGUMENT_MISSING = "One or more arguments are missing.";
 
     // ******************** BILLING TESTS ******************** //
     static final String TEST_ORDER_ID = "GPA.1234-5678-9012-34567";
@@ -150,6 +150,16 @@ public class Constants {
             "\"developerPayload\":\"" + TEST_DEVELOPER_PAYLOAD + "\"," +
             "\"purchaseToken\":\"" + TEST_PURCHASE_TOKEN + "\"," +
             "\"autoRenewing\":true}";
+
+    static final String TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE = "{" +
+            "\"orderId\":\"" + TEST_ORDER_ID + "\"," +
+            "\"packageName\":\"" + TEST_PACKAGE_NAME + "\"," +
+            "\"productId\":\"" + TEST_PRODUCT_ID + "_%d\"," +
+            "\"purchaseTime\":" + TEST_PURCHASE_TIME + "," +
+            "\"purchaseState\":0," +
+            "\"developerPayload\":\"" + TEST_DEVELOPER_PAYLOAD + "\"," +
+            "\"purchaseToken\":\"" + TEST_PURCHASE_TOKEN + "\"," +
+            "\"autoRenewing\":false}";
 
     static final String TEST_JSON_RECEIPT_NO_TOKEN = "{" +
             "\"orderId\":\"" + TEST_ORDER_ID + "\"," +

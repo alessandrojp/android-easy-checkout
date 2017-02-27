@@ -56,7 +56,7 @@ public class ItemGetterTest {
     @Mock
     IInAppBillingService mService;
 
-    private final BillingContext mBillingContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final BillingContext mBillingContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
 
     private ItemGetter mGetter;
 
@@ -93,7 +93,7 @@ public class ItemGetterTest {
         requestBundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
 
         int size = 10;
-        ArrayList<String> items = Util.createSkuItemDetailsJsonArray(size);
+        ArrayList<String> items = DataCreator.createSkuItemDetailsJsonArray(size);
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
         responseBundle.putStringArrayList(Constants.RESPONSE_DETAILS_LIST, items);
@@ -127,7 +127,7 @@ public class ItemGetterTest {
         Bundle requestBundle = new Bundle();
         requestBundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
 
-        ArrayList<String> items = Util.createSkuDetailsJsonBrokenArray();
+        ArrayList<String> items = DataCreator.createSkuDetailsJsonBrokenArray();
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
         responseBundle.putStringArrayList(Constants.RESPONSE_DETAILS_LIST, items);

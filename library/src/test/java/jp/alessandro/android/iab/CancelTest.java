@@ -66,7 +66,7 @@ public class CancelTest {
     @Mock
     ServiceBinder mServiceBinder;
 
-    private final BillingContext mContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
 
     private BillingProcessor mProcessor;
     private Handler mWorkHandler;
@@ -91,7 +91,7 @@ public class CancelTest {
     @Test
     public void getPurchasesAndCancel() throws InterruptedException, RemoteException {
         CountDownLatch latch = new CountDownLatch(1);
-        Bundle responseBundle = Util.createPurchaseBundle(0, 0, 10, null);
+        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
 
         doReturn(responseBundle).when(mService).getPurchases(
                 mContext.getApiVersion(), mContext.getContext().getPackageName(), Constants.ITEM_TYPE_INAPP, null);

@@ -75,7 +75,7 @@ public class BillingProcessorTest {
     @Mock
     Activity mActivity;
 
-    private final BillingContext mContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
 
     private BillingProcessor mProcessor;
 
@@ -115,7 +115,7 @@ public class BillingProcessorTest {
                 new StartActivityHandler() {
                     @Override
                     public void onSuccess() {
-                        assertThat(mProcessor.onActivityResult(requestCode, -1, Util.newOkIntent())).isTrue();
+                        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent())).isTrue();
                         latch.countDown();
                     }
 

@@ -60,7 +60,7 @@ public class PurchaseFlowLaunchTest {
     private static final String TYPE_IN_APP = "inapp";
     private static final String TYPE_SUBSCRIPTION = "subs";
 
-    private final BillingContext mBillingContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final BillingContext mBillingContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
 
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();

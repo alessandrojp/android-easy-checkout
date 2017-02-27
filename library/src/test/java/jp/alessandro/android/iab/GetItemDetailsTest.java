@@ -68,7 +68,7 @@ public class GetItemDetailsTest {
     @Mock
     Activity mActivity;
 
-    private final BillingContext mContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
     private final ShadowApplication mShadowApplication = shadowOf(RuntimeEnvironment.application);
     private final ComponentName mComponentName = mock(ComponentName.class);
 
@@ -101,15 +101,87 @@ public class GetItemDetailsTest {
         getItemDetailsError(PurchaseType.IN_APP);
     }
 
+    @Test
+    public void getItemDetailsWithPurchaseTypeNull() {
+        ArrayList<String> itemIds = new ArrayList<>();
+        try {
+            mProcessor.getItemDetails(null, itemIds, new ItemDetailsHandler() {
+                @Override
+                public void onSuccess(ItemDetails itemDetails) {
+                    throw new IllegalStateException();
+                }
+
+                @Override
+                public void onError(BillingException e) {
+                    throw new IllegalStateException();
+                }
+            });
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
+    }
+
+    @Test
+    public void getItemDetailsWithItemIdsEmpty() {
+        ArrayList<String> itemIds = new ArrayList<>();
+        try {
+            mProcessor.getItemDetails(PurchaseType.IN_APP, itemIds, new ItemDetailsHandler() {
+                @Override
+                public void onSuccess(ItemDetails itemDetails) {
+                    throw new IllegalStateException();
+                }
+
+                @Override
+                public void onError(BillingException e) {
+                    throw new IllegalStateException();
+                }
+            });
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
+    }
+
+    @Test
+    public void getItemDetailsWithItemIdsNull() {
+        try {
+            mProcessor.getItemDetails(PurchaseType.IN_APP, null, new ItemDetailsHandler() {
+                @Override
+                public void onSuccess(ItemDetails itemDetails) {
+                    throw new IllegalStateException();
+                }
+
+                @Override
+                public void onError(BillingException e) {
+                    throw new IllegalStateException();
+                }
+            });
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
+    }
+
+    @Test
+    public void getItemDetailsWitHandlerNull() {
+        ArrayList<String> itemIds = new ArrayList<>();
+        itemIds.add("");
+        try {
+            mProcessor.getItemDetails(PurchaseType.IN_APP, itemIds, null);
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
+    }
+
     private void getItemDetails(final PurchaseType type) throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int size = 10;
 
         ArrayList<String> itemIds = new ArrayList<>();
+        itemIds.add("");
+
         Bundle requestBundle = new Bundle();
         requestBundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
 
-        ArrayList<String> items = Util.createSkuItemDetailsJsonArray(size);
+        ArrayList<String> items = DataCreator.createSkuItemDetailsJsonArray(size);
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
         responseBundle.putStringArrayList(Constants.RESPONSE_DETAILS_LIST, items);
@@ -146,6 +218,8 @@ public class GetItemDetailsTest {
         final CountDownLatch latch = new CountDownLatch(1);
 
         ArrayList<String> itemIds = new ArrayList<>();
+        itemIds.add("");
+
         Bundle requestBundle = new Bundle();
         requestBundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
 

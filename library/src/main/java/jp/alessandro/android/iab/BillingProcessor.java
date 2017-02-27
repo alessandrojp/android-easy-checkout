@@ -132,6 +132,8 @@ public class BillingProcessor {
     public void consumePurchase(final String itemId, final ConsumeItemHandler handler) {
         synchronized (this) {
             checkIfIsNotReleased();
+            Checker.consumePurchasesArguments(itemId, handler);
+
             executeInServiceOnWorkThread(new ServiceBinder.Handler() {
                 @Override
                 public void onBind(IInAppBillingService service) {
@@ -146,6 +148,7 @@ public class BillingProcessor {
                         }
 
                         postConsumePurchaseSuccess(handler);
+
                     } catch (BillingException e) {
                         postOnError(e, handler);
                     } catch (RemoteException e) {
@@ -202,6 +205,8 @@ public class BillingProcessor {
                                final ItemDetailsHandler handler) {
         synchronized (this) {
             checkIfIsNotReleased();
+            Checker.getItemDetailsArguments(purchaseType, itemIds, handler);
+
             executeInServiceOnWorkThread(new ServiceBinder.Handler() {
                 @Override
                 public void onBind(IInAppBillingService service) {
@@ -217,7 +222,7 @@ public class BillingProcessor {
                         ItemGetter getter = new ItemGetter(mContext);
                         ItemDetails details = getter.get(service, type, createBundleItemListFromArray(itemIds));
 
-                        postListSuccess(details, handler);
+                        postGetItemDetailsSuccess(details, handler);
                     } catch (BillingException e) {
                         postOnError(e, handler);
                     }
@@ -242,6 +247,8 @@ public class BillingProcessor {
     public void getPurchases(final PurchaseType purchaseType, final PurchasesHandler handler) {
         synchronized (this) {
             checkIfIsNotReleased();
+            Checker.getPurchasesArguments(purchaseType, handler);
+
             executeInServiceOnWorkThread(new ServiceBinder.Handler() {
                 @Override
                 public void onBind(IInAppBillingService service) {
@@ -257,7 +264,7 @@ public class BillingProcessor {
                         PurchaseGetter getter = new PurchaseGetter(mContext);
                         Purchases purchases = getter.get(service, type);
 
-                        postPurchasesSuccess(purchases, handler);
+                        postGetPurchasesSuccess(purchases, handler);
                     } catch (BillingException e) {
                         postOnError(e, handler);
                     }
@@ -284,6 +291,8 @@ public class BillingProcessor {
     public void getInventory(final PurchaseType purchaseType, final InventoryHandler handler) {
         synchronized (this) {
             checkIfIsNotReleased();
+            Checker.getInventoryArguments(purchaseType, handler);
+
             executeInServiceOnWorkThread(new ServiceBinder.Handler() {
                 @Override
                 public void onBind(IInAppBillingService service) {
@@ -299,7 +308,7 @@ public class BillingProcessor {
                         PurchaseGetter getter = new PurchaseGetter(mContext);
                         Purchases purchases = getter.get(service, type);
 
-                        postInventorySuccess(purchases, handler);
+                        postGetInventorySuccess(purchases, handler);
                     } catch (BillingException e) {
                         postOnError(e, handler);
                     }
@@ -330,7 +339,7 @@ public class BillingProcessor {
                 return false;
             }
             try {
-                checkIsMainThread();
+                Checker.isMainThread();
                 Purchase purchase = launcher.handleResult(requestCode, resultCode, data);
 
                 postPurchaseSuccess(purchase);
@@ -359,13 +368,8 @@ public class BillingProcessor {
                 return;
             }
             mPurchaseFlows.clear();
-
-            if (mMainHandler != null) {
-                mMainHandler.removeCallbacksAndMessages(null);
-            }
-            if (mWorkHandler != null) {
-                mWorkHandler.removeCallbacksAndMessages(null);
-            }
+            mMainHandler.removeCallbacksAndMessages(null);
+            mWorkHandler.removeCallbacksAndMessages(null);
         }
     }
 
@@ -376,45 +380,25 @@ public class BillingProcessor {
      * Once you release it, you MUST to create a new instance
      */
     public void release() {
-        mIsReleased = true;
-        mPurchaseHandler = null;
-        mPurchaseFlows.clear();
+        synchronized (this) {
+            mIsReleased = true;
+            mPurchaseHandler = null;
+            mPurchaseFlows.clear();
 
-        Handler mainThread = mMainHandler;
-        Handler workHandler = mWorkHandler;
+            Handler mainThread = mMainHandler;
+            Handler workHandler = mWorkHandler;
 
-        mMainHandler = null;
-        mWorkHandler = null;
+            mMainHandler = null;
+            mWorkHandler = null;
 
-        if (mainThread != null) {
-            mainThread.removeCallbacksAndMessages(null);
+            if (mainThread != null) {
+                mainThread.removeCallbacksAndMessages(null);
+            }
+            if (workHandler != null) {
+                workHandler.removeCallbacksAndMessages(null);
+                workHandler.getLooper().quit();
+            }
         }
-        if (workHandler != null) {
-            workHandler.removeCallbacksAndMessages(null);
-            workHandler.getLooper().quit();
-        }
-    }
-
-    /**
-     * Handler to post all events in the library
-     */
-    protected Handler getMainHandler() {
-        if (mMainHandler == null) {
-            return mMainHandler = new Handler(Looper.getMainLooper());
-        }
-        return mMainHandler;
-    }
-
-    /**
-     * Handler to post all actions in the library
-     */
-    protected Handler getWorkHandler() {
-        if (mWorkHandler == null) {
-            HandlerThread thread = new HandlerThread(WORK_THREAD_NAME);
-            thread.start();
-            return mWorkHandler = new Handler(thread.getLooper());
-        }
-        return mWorkHandler;
     }
 
     protected void checkIfBillingIsSupported(PurchaseType purchaseType, IInAppBillingService service) throws BillingException {
@@ -463,10 +447,32 @@ public class BillingProcessor {
     }
 
     /**
+     * Handler to post all actions in the library
+     */
+    protected Handler getWorkHandler() {
+        if (mWorkHandler == null) {
+            HandlerThread thread = new HandlerThread(WORK_THREAD_NAME);
+            thread.start();
+            return mWorkHandler = new Handler(thread.getLooper());
+        }
+        return mWorkHandler;
+    }
+
+    /**
+     * Handler to post all events in the library
+     */
+    private Handler getMainHandler() {
+        if (mMainHandler == null) {
+            return mMainHandler = new Handler(Looper.getMainLooper());
+        }
+        return mMainHandler;
+    }
+
+    /**
      * Get the purchase token to be used in {@link BillingProcessor#consumePurchase(String, ConsumeItemHandler)}
      */
-    protected String getToken(IInAppBillingService service, String itemId) throws BillingException {
-        PurchaseGetter getter = createPurchaseGetter();
+    private String getToken(IInAppBillingService service, String itemId) throws BillingException {
+        PurchaseGetter getter = new PurchaseGetter(mContext);
         Purchases purchases = getter.get(service, Constants.ITEM_TYPE_INAPP);
         Purchase purchase = purchases.getByPurchaseId(itemId);
 
@@ -475,10 +481,6 @@ public class BillingProcessor {
                     Constants.ERROR_MSG_PURCHASE_OR_TOKEN_NULL);
         }
         return purchase.getToken();
-    }
-
-    protected PurchaseGetter createPurchaseGetter() {
-        return new PurchaseGetter(mContext);
     }
 
     protected ServiceBinder createServiceBinder() {
@@ -494,6 +496,8 @@ public class BillingProcessor {
                                final StartActivityHandler handler) {
 
         checkIfIsNotReleased();
+        Checker.startActivityArguments(activity, itemId, purchaseType, handler);
+
         executeInServiceOnMainThread(new ServiceBinder.Handler() {
             @Override
             public void onBind(IInAppBillingService service) {
@@ -602,24 +606,20 @@ public class BillingProcessor {
         });
     }
 
-    private void postListSuccess(final ItemDetails itemDetails, final ItemDetailsHandler handler) {
+    private void postGetItemDetailsSuccess(final ItemDetails itemDetails, final ItemDetailsHandler handler) {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                if (handler != null) {
-                    handler.onSuccess(itemDetails);
-                }
+                handler.onSuccess(itemDetails);
             }
         });
     }
 
-    private void postPurchasesSuccess(final Purchases purchases, final PurchasesHandler handler) {
+    private void postGetPurchasesSuccess(final Purchases purchases, final PurchasesHandler handler) {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                if (handler != null) {
-                    handler.onSuccess(purchases);
-                }
+                handler.onSuccess(purchases);
             }
         });
     }
@@ -628,21 +628,17 @@ public class BillingProcessor {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                if (handler != null) {
-                    handler.onSuccess();
-                }
+                handler.onSuccess();
             }
         });
     }
 
     @Deprecated
-    private void postInventorySuccess(final Purchases purchases, final InventoryHandler handler) {
+    private void postGetInventorySuccess(final Purchases purchases, final InventoryHandler handler) {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                if (handler != null) {
-                    handler.onSuccess(purchases);
-                }
+                handler.onSuccess(purchases);
             }
         });
     }
@@ -651,9 +647,7 @@ public class BillingProcessor {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                if (handler != null) {
-                    handler.onSuccess();
-                }
+                handler.onSuccess();
             }
         });
     }
@@ -662,9 +656,7 @@ public class BillingProcessor {
         postEventHandler(new Runnable() {
             @Override
             public void run() {
-                if (handler != null) {
-                    handler.onError(e);
-                }
+                handler.onError(e);
             }
         });
     }
@@ -677,12 +669,5 @@ public class BillingProcessor {
         if (mIsReleased) {
             throw new IllegalStateException(Constants.ERROR_MSG_LIBRARY_ALREADY_RELEASED);
         }
-    }
-
-    private void checkIsMainThread() {
-        if (Looper.getMainLooper() == Looper.myLooper()) {
-            return;
-        }
-        throw new IllegalStateException(Constants.ERROR_MSG_METHOD_MUST_BE_CALLED_ON_UI_THREAD);
     }
 }

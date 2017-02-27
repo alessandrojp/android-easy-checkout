@@ -67,7 +67,7 @@ class ItemGetter {
     }
 
     private ItemDetails getItemsFromResponse(Bundle bundle) throws BillingException {
-        int response = Util.getResponseCodeFromBundle(bundle, mLogger);
+        int response = ResponseExtractor.fromBundle(bundle, mLogger);
         if (response == Constants.BILLING_RESPONSE_RESULT_OK) {
             return getDetailsList(bundle);
         } else {

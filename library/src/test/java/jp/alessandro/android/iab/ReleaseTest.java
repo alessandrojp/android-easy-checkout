@@ -28,6 +28,8 @@ import org.robolectric.annotation.Config;
 import java.util.ArrayList;
 import java.util.List;
 
+import jp.alessandro.android.iab.handler.ConsumeItemHandler;
+
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
 /**
@@ -38,7 +40,7 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 @Config(manifest = Config.NONE, constants = BuildConfig.class)
 public class ReleaseTest {
 
-    private final BillingContext mContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
 
     private BillingProcessor mProcessor;
 
@@ -82,7 +84,17 @@ public class ReleaseTest {
     public void releaseAndConsume() {
         mProcessor.release();
         try {
-            mProcessor.consume(null, null);
+            mProcessor.consume(Constants.TEST_PRODUCT_ID, new ConsumeItemHandler() {
+                @Override
+                public void onSuccess() {
+                    throw new IllegalStateException();
+                }
+
+                @Override
+                public void onError(BillingException e) {
+                    throw new IllegalStateException();
+                }
+            });
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_LIBRARY_ALREADY_RELEASED);
         }

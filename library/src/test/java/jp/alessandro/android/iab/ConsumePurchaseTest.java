@@ -60,7 +60,7 @@ public class ConsumePurchaseTest {
     private Handler mWorkHandler;
     private BillingProcessor mProcessor;
 
-    private final BillingContext mContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
 
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
@@ -81,7 +81,7 @@ public class ConsumePurchaseTest {
         final CountDownLatch latch = new CountDownLatch(1);
         final int responseCode = 0;
 
-        Bundle responseBundle = Util.createPurchaseBundle(0, 0, 10, null);
+        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
         stubBundle.putInt(ServiceStubCreater.CONSUME_PURCHASE, responseCode);
         stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
@@ -112,7 +112,7 @@ public class ConsumePurchaseTest {
 
         int size = 10;
 
-        Bundle responseBundle = Util.createPurchaseBundle(0, 0, size, null);
+        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
         Bundle stubBundle = new Bundle();
         stubBundle.putInt(ServiceStubCreater.CONSUME_PURCHASE, responseCode);
         stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
@@ -170,7 +170,7 @@ public class ConsumePurchaseTest {
     public void consumePurchaseNotFound() throws InterruptedException, RemoteException, BillingException {
         final CountDownLatch latch = new CountDownLatch(1);
 
-        Bundle responseBundle = Util.createPurchaseBundle(0, 0, 10, null);
+        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
         stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
 
@@ -198,7 +198,7 @@ public class ConsumePurchaseTest {
     public void consumePurchaseTokenNull() throws InterruptedException, RemoteException, BillingException {
         final CountDownLatch latch = new CountDownLatch(1);
 
-        Bundle responseBundle = Util.createPurchaseWithNoTokenBundle(0, 0, 10, null);
+        Bundle responseBundle = DataCreator.createPurchaseWithNoTokenBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
         stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
 
@@ -220,6 +220,34 @@ public class ConsumePurchaseTest {
         Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(15, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void consumePurchaseWithHandlerNull() {
+        try {
+            mProcessor.consume(Constants.TEST_PRODUCT_ID, null);
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
+    }
+
+    @Test
+    public void consumePurchaseWithItemIdNull() {
+        try {
+            mProcessor.consume(null, new ConsumeItemHandler() {
+                @Override
+                public void onSuccess() {
+                    throw new IllegalStateException();
+                }
+
+                @Override
+                public void onError(BillingException e) {
+                    throw new IllegalStateException();
+                }
+            });
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
+        }
     }
 
     @Test
@@ -251,11 +279,11 @@ public class ConsumePurchaseTest {
     public void bindServiceError() throws InterruptedException, RemoteException, BillingException {
         final CountDownLatch latch = new CountDownLatch(1);
 
-        BillingContext context = Util.newBillingContext(mock(Context.class));
+        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
         mProcessor = spy(new BillingProcessor(context, null));
         mWorkHandler = mProcessor.getWorkHandler();
 
-        mProcessor.consume(null, new ConsumeItemHandler() {
+        mProcessor.consume(Constants.TEST_PRODUCT_ID, new ConsumeItemHandler() {
             @Override
             public void onSuccess() {
                 throw new IllegalStateException();
@@ -282,7 +310,7 @@ public class ConsumePurchaseTest {
 
         setServiceStub(stubBundle);
 
-        mProcessor.consume(null, new ConsumeItemHandler() {
+        mProcessor.consume(Constants.TEST_PRODUCT_ID, new ConsumeItemHandler() {
             @Override
             public void onSuccess() {
                 throw new IllegalStateException();
