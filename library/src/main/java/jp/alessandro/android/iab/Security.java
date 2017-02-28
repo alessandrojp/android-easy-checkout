@@ -47,6 +47,12 @@ class Security {
     static final String KEY_FACTORY_ALGORITHM = "RSA";
     static final String SIGNATURE_ALGORITHM = "SHA1withRSA";
 
+    private final boolean mIsDebug;
+
+    public Security(boolean isDebug) {
+        mIsDebug = isDebug;
+    }
+
     /**
      * Verifies that the data was signed with the given signature, and returns
      * the verified purchase. The data is in JSON format and signed
@@ -61,7 +67,7 @@ class Security {
     public boolean verifyPurchase(Logger logger, String base64PublicKey, String signedData, String signature) {
         if (TextUtils.isEmpty(base64PublicKey) || TextUtils.isEmpty(signedData) || TextUtils.isEmpty(signature)) {
             // In case of tests it will return true because test purchases doesn't have a signature
-            if (BuildConfig.DEBUG && !TextUtils.isEmpty(signedData) && TextUtils.isEmpty(signature)) {
+            if (mIsDebug && !TextUtils.isEmpty(signedData) && TextUtils.isEmpty(signature)) {
                 return isTestingStaticResponse(logger, signedData);
             }
             logger.e(Logger.TAG, "Purchase verification failed: missing data.");

@@ -29,6 +29,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
         multiDexEnabled true
+//        buildConfigField "boolean", "DEBUG", "true"
     }
 
     buildTypes {

@@ -60,7 +60,7 @@ public class SecurityTest {
 
     @Before
     public void setUp() {
-        mSecurity = spy(new Security());
+        mSecurity = spy(new Security(true));
     }
 
     @Test
@@ -80,6 +80,30 @@ public class SecurityTest {
         String signedData = Constants.TEST_JSON_RECEIPT;
         String signedDifferentData = Constants.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE;
         String signature = DataSigner.sign(signedDifferentData);
+
+        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+    }
+
+    @Test
+    public void verifyPurchaseDebugTrue() {
+        Logger logger = new DiscardLogger();
+        String base64PublicKey = Constants.TEST_PUBLIC_KEY_BASE_64;
+        String signedData = Constants.TEST_JSON_RECEIPT;
+        String signedDifferentData = Constants.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE;
+        String signature = DataSigner.sign(signedDifferentData);
+
+        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+    }
+
+    @Test
+    public void verifyPurchaseDebugFalse() {
+        Logger logger = new DiscardLogger();
+        String base64PublicKey = Constants.TEST_PUBLIC_KEY_BASE_64;
+        String signedData = Constants.TEST_JSON_RECEIPT;
+        String signedDifferentData = Constants.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE;
+        String signature = DataSigner.sign(signedDifferentData);
+
+        mSecurity = new Security(false);
 
         assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
     }
@@ -131,11 +155,7 @@ public class SecurityTest {
         String signedData = "{\"productId\": \"android.test.purchased\"}";
         String signature = "";
 
-        if (BuildConfig.DEBUG) {
-            assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
-        } else {
-            assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        }
+        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
     }
 
     @Test
@@ -145,11 +165,7 @@ public class SecurityTest {
         String signedData = "{\"productId\": \"android.test.canceled\"}";
         String signature = "";
 
-        if (BuildConfig.DEBUG) {
-            assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
-        } else {
-            assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        }
+        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
     }
 
     @Test
@@ -159,11 +175,7 @@ public class SecurityTest {
         String signedData = "{\"productId\": \"android.test.refunded\"}";
         String signature = "";
 
-        if (BuildConfig.DEBUG) {
-            assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
-        } else {
-            assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        }
+        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
     }
 
     @Test
@@ -173,11 +185,7 @@ public class SecurityTest {
         String signedData = "{\"productId\": \"android.test.item_unavailable\"}";
         String signature = "";
 
-        if (BuildConfig.DEBUG) {
-            assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
-        } else {
-            assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        }
+        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
     }
 
     @Test

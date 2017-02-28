@@ -51,7 +51,7 @@ public class PurchaseFlowLauncher {
         mApiVersion = context.getApiVersion();
         mPackageName = context.getContext().getPackageName();
         mLogger = context.getLogger();
-        mSecurity = new Security();
+        mSecurity = new Security(BuildConfig.DEBUG);
     }
 
     public void launch(IInAppBillingService service,

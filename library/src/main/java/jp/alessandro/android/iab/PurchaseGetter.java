@@ -43,7 +43,7 @@ class PurchaseGetter {
         mApiVersion = context.getApiVersion();
         mPackageName = context.getContext().getPackageName();
         mLogger = context.getLogger();
-        mSecurity = new Security();
+        mSecurity = new Security(BuildConfig.DEBUG);
     }
 
     /**
