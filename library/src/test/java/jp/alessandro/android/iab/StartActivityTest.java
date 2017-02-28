@@ -147,7 +147,7 @@ public class StartActivityTest {
         bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreater.GET_BUY_INTENT_TO_REPLACE_SKUS, bundle);
+        stubBundle.putParcelable(ServiceStubCreator.GET_BUY_INTENT_TO_REPLACE_SKUS, bundle);
 
         setServiceStub(stubBundle);
 
@@ -303,7 +303,7 @@ public class StartActivityTest {
         int requestCode = 1001;
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putBoolean(ServiceStubCreater.THROW_REMOTE_EXCEPTION_ON_BILLING_SUPPORTED, true);
+        stubBundle.putBoolean(ServiceStubCreator.THROW_REMOTE_EXCEPTION_ON_BILLING_SUPPORTED, true);
         setServiceStub(stubBundle);
 
         mProcessor = new BillingProcessor(mContext, mPurchaseHandler);
@@ -350,7 +350,7 @@ public class StartActivityTest {
         int requestCode = 1001;
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putInt(ServiceStubCreater.IN_APP_BILLING_SUPPORTED, 1);
+        stubBundle.putInt(ServiceStubCreator.IN_APP_BILLING_SUPPORTED, 1);
         setServiceStub(stubBundle);
 
         mProcessor = spy(new BillingProcessor(mContext, mPurchaseHandler));
@@ -381,7 +381,7 @@ public class StartActivityTest {
         final int requestCode = 1001;
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putBoolean(ServiceStubCreater.THROW_REMOTE_EXCEPTION_ON_GET_ACTIONS, true);
+        stubBundle.putBoolean(ServiceStubCreator.THROW_REMOTE_EXCEPTION_ON_GET_ACTIONS, true);
         setServiceStub(stubBundle);
 
         mProcessor = new BillingProcessor(mContext, mPurchaseHandler);
@@ -483,7 +483,7 @@ public class StartActivityTest {
         bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreater.GET_BUY_INTENT, bundle);
+        stubBundle.putParcelable(ServiceStubCreator.GET_BUY_INTENT, bundle);
         setServiceStub(stubBundle);
 
         mProcessor = spy(new BillingProcessor(mContext, mPurchaseHandler));
@@ -491,7 +491,7 @@ public class StartActivityTest {
 
     private void setServiceStub(final Bundle stubBundle) {
         ShadowApplication shadowApplication = Shadows.shadowOf(RuntimeEnvironment.application);
-        IInAppBillingService.Stub stub = new ServiceStubCreater().create(stubBundle);
+        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
         ComponentName cn = mock(ComponentName.class);
         shadowApplication.setComponentNameAndServiceForBindService(cn, stub);
     }

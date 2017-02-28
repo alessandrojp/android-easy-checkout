@@ -221,10 +221,7 @@ public class GetItemDetailsTest {
         final int size = 10;
 
         ArrayList<String> itemIds = new ArrayList<>();
-        itemIds.add("");
-
-        Bundle requestBundle = new Bundle();
-        requestBundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
+        itemIds.add(Constants.TEST_PRODUCT_ID);
 
         ArrayList<String> items = DataCreator.createSkuItemDetailsJsonArray(size);
         Bundle responseBundle = new Bundle();
@@ -237,7 +234,6 @@ public class GetItemDetailsTest {
             @Override
             public void onSuccess(ItemDetails itemDetails) {
                 assertThat(itemDetails.getSize()).isEqualTo(size);
-                assertThat(itemDetails.getAll()).isNotNull();
 
                 List<Item> purchaseList = itemDetails.getAll();
                 for (Item item : purchaseList) {
@@ -265,9 +261,6 @@ public class GetItemDetailsTest {
         ArrayList<String> itemIds = new ArrayList<>();
         itemIds.add("");
 
-        Bundle requestBundle = new Bundle();
-        requestBundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
-
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
 
@@ -294,9 +287,9 @@ public class GetItemDetailsTest {
 
     private void setServiceStub(final Bundle responseBundle) {
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreater.GET_SKU_DETAILS, responseBundle);
+        stubBundle.putParcelable(ServiceStubCreator.GET_SKU_DETAILS, responseBundle);
 
-        IInAppBillingService.Stub stub = new ServiceStubCreater().create(stubBundle);
+        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
         mShadowApplication.setComponentNameAndServiceForBindService(mComponentName, stub);
     }
 }

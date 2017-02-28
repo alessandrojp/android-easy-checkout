@@ -126,9 +126,9 @@ public class GetPurchasesTest {
         Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
+        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
 
-        IInAppBillingService.Stub stub = new ServiceStubCreater().create(stubBundle);
+        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
         mShadowApplication.setComponentNameAndServiceForBindService(mComponentName, stub);
 
         mProcessor.getPurchases(PurchaseType.SUBSCRIPTION, new PurchasesHandler() {
@@ -191,9 +191,9 @@ public class GetPurchasesTest {
         Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
+        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
 
-        IInAppBillingService.Stub stub = new ServiceStubCreater().create(stubBundle);
+        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
         mShadowApplication.setComponentNameAndServiceForBindService(mComponentName, stub);
 
         mProcessor.getPurchases(PurchaseType.SUBSCRIPTION, new PurchasesHandler() {
@@ -301,9 +301,9 @@ public class GetPurchasesTest {
 
     private void setServiceStub(final Bundle responseBundle) {
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
+        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
 
-        IInAppBillingService.Stub stub = new ServiceStubCreater().create(stubBundle);
+        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
         mShadowApplication.setComponentNameAndServiceForBindService(mComponentName, stub);
     }
 }

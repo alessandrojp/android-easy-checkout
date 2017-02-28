@@ -85,8 +85,8 @@ public class ConsumePurchaseTest {
 
         Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
-        stubBundle.putInt(ServiceStubCreater.CONSUME_PURCHASE, responseCode);
-        stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
+        stubBundle.putInt(ServiceStubCreator.CONSUME_PURCHASE, responseCode);
+        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
 
         setServiceStub(stubBundle);
 
@@ -116,8 +116,8 @@ public class ConsumePurchaseTest {
 
         Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
         Bundle stubBundle = new Bundle();
-        stubBundle.putInt(ServiceStubCreater.CONSUME_PURCHASE, responseCode);
-        stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
+        stubBundle.putInt(ServiceStubCreator.CONSUME_PURCHASE, responseCode);
+        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
 
         setServiceStub(stubBundle);
 
@@ -146,7 +146,7 @@ public class ConsumePurchaseTest {
         final int responseCode = 3;
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putInt(ServiceStubCreater.CONSUME_PURCHASE, responseCode);
+        stubBundle.putInt(ServiceStubCreator.CONSUME_PURCHASE, responseCode);
 
         setServiceStub(stubBundle);
 
@@ -174,7 +174,7 @@ public class ConsumePurchaseTest {
 
         Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
+        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
 
         setServiceStub(stubBundle);
 
@@ -202,7 +202,7 @@ public class ConsumePurchaseTest {
 
         Bundle responseBundle = DataCreator.createPurchaseWithNoTokenBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
+        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
 
         setServiceStub(stubBundle);
 
@@ -258,8 +258,8 @@ public class ConsumePurchaseTest {
 
         Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
-        stubBundle.putBoolean(ServiceStubCreater.THROW_REMOTE_EXCEPTION_ON_CONSUME_PURCHASE, true);
-        stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
+        stubBundle.putBoolean(ServiceStubCreator.THROW_REMOTE_EXCEPTION_ON_CONSUME_PURCHASE, true);
+        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
 
         setServiceStub(stubBundle);
 
@@ -311,7 +311,7 @@ public class ConsumePurchaseTest {
         final CountDownLatch latch = new CountDownLatch(1);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putInt(ServiceStubCreater.IN_APP_BILLING_SUPPORTED, 1);
+        stubBundle.putInt(ServiceStubCreator.IN_APP_BILLING_SUPPORTED, 1);
 
         setServiceStub(stubBundle);
 
@@ -335,7 +335,7 @@ public class ConsumePurchaseTest {
 
     private void setServiceStub(final Bundle stubBundle) {
         ShadowApplication shadowApplication = Shadows.shadowOf(RuntimeEnvironment.application);
-        IInAppBillingService.Stub stub = new ServiceStubCreater().create(stubBundle);
+        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
         ComponentName cn = mock(ComponentName.class);
         shadowApplication.setComponentNameAndServiceForBindService(cn, stub);
     }

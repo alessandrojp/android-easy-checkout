@@ -71,7 +71,7 @@ public class ServiceTest {
     @Before
     public void setUp() throws Exception {
         ShadowApplication shadowApplication = Shadows.shadowOf(RuntimeEnvironment.application);
-        IInAppBillingService.Stub stub = new ServiceStubCreater().create(new Bundle());
+        IInAppBillingService.Stub stub = new ServiceStubCreator().create(new Bundle());
         ComponentName cn = mock(ComponentName.class);
         shadowApplication.setComponentNameAndServiceForBindService(cn, stub);
     }
@@ -219,7 +219,7 @@ public class ServiceTest {
                 throw new IllegalStateException();
             }
         });
-        conn.onServiceConnected(null, new ServiceStubCreater().create(new Bundle()).asBinder());
+        conn.onServiceConnected(null, new ServiceStubCreator().create(new Bundle()).asBinder());
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -245,7 +245,7 @@ public class ServiceTest {
                 throw new IllegalStateException();
             }
         });
-        conn.onServiceConnected(null, new ServiceStubCreater().create(new Bundle()).asBinder());
+        conn.onServiceConnected(null, new ServiceStubCreator().create(new Bundle()).asBinder());
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -270,7 +270,7 @@ public class ServiceTest {
                 throw new IllegalStateException();
             }
         });
-        conn.onServiceConnected(null, new ServiceStubCreater().create(new Bundle()).asBinder());
+        conn.onServiceConnected(null, new ServiceStubCreator().create(new Bundle()).asBinder());
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -297,7 +297,7 @@ public class ServiceTest {
         };
         conn.getServiceAsync(handler);
         conn.getServiceAsync(handler);
-        conn.onServiceConnected(null, new ServiceStubCreater().create(new Bundle()).asBinder());
+        conn.onServiceConnected(null, new ServiceStubCreator().create(new Bundle()).asBinder());
 
         latch.await(15, TimeUnit.SECONDS);
     }

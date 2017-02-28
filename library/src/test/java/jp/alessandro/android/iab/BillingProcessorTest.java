@@ -45,6 +45,7 @@ import org.robolectric.shadows.ShadowApplication;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -123,6 +124,9 @@ public class BillingProcessorTest {
     public void onActivityResult() throws InterruptedException, RemoteException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int requestCode = 1001;
+        final int itemIndex = 0;
+
+        String itemId = String.format(Locale.ENGLISH, "%s_%d", Constants.TEST_PRODUCT_ID, itemIndex);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(mContext.getContext(), 1, new Intent(), 0);
         PurchaseType type = PurchaseType.IN_APP;
@@ -132,20 +136,20 @@ public class BillingProcessorTest {
         bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreater.GET_BUY_INTENT, bundle);
+        stubBundle.putParcelable(ServiceStubCreator.GET_BUY_INTENT, bundle);
 
         setServiceStub(stubBundle);
 
         mProcessor.startPurchase(
                 mActivity,
                 requestCode,
-                Constants.TEST_PRODUCT_ID,
+                itemId,
                 type,
                 Constants.TEST_DEVELOPER_PAYLOAD,
                 new StartActivityHandler() {
                     @Override
                     public void onSuccess() {
-                        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent())).isTrue();
+                        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent(itemIndex))).isTrue();
                         latch.countDown();
                     }
 
@@ -384,7 +388,7 @@ public class BillingProcessorTest {
 
     private void setServiceStub(final Bundle stubBundle) {
         ShadowApplication shadowApplication = Shadows.shadowOf(RuntimeEnvironment.application);
-        IInAppBillingService.Stub stub = new ServiceStubCreater().create(stubBundle);
+        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
         ComponentName cn = mock(ComponentName.class);
         shadowApplication.setComponentNameAndServiceForBindService(cn, stub);
     }

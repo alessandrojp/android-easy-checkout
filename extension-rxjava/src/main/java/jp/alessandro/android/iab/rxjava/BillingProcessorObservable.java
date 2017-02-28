@@ -49,10 +49,14 @@ import rx.functions.Action1;
 
 public class BillingProcessorObservable {
 
-    private final BillingProcessor mBillingProcessor;
+    private final BillingContext mBillingContext;
+    private final PurchaseHandler mPurchaseHandler;
+
+    private BillingProcessor mBillingProcessor;
 
     public BillingProcessorObservable(BillingContext context, PurchaseHandler purchaseHandler) {
-        mBillingProcessor = new BillingProcessor(context, purchaseHandler);
+        mBillingContext = context;
+        mPurchaseHandler = purchaseHandler;
     }
 
     /**
@@ -84,7 +88,7 @@ public class BillingProcessorObservable {
         return Completable.fromEmitter(new Action1<CompletableEmitter>() {
             @Override
             public void call(final CompletableEmitter emitter) {
-                mBillingProcessor.startPurchase(activity,
+                getBillingProcessor().startPurchase(activity,
                         requestCode,
                         itemId,
                         purchaseType,
@@ -127,7 +131,7 @@ public class BillingProcessorObservable {
         return Completable.fromEmitter(new Action1<CompletableEmitter>() {
             @Override
             public void call(final CompletableEmitter emitter) {
-                mBillingProcessor.updateSubscription(activity, requestCode, oldItemIds, itemId, developerPayload,
+                getBillingProcessor().updateSubscription(activity, requestCode, oldItemIds, itemId, developerPayload,
                         new StartActivityHandler() {
                             @Override
                             public void onSuccess() {
@@ -154,23 +158,7 @@ public class BillingProcessorObservable {
      */
     @Deprecated
     public Completable consume(final String itemId) {
-        return Completable.fromEmitter(new Action1<CompletableEmitter>() {
-
-            @Override
-            public void call(final CompletableEmitter emitter) {
-                mBillingProcessor.consume(itemId, new ConsumeItemHandler() {
-                    @Override
-                    public void onSuccess() {
-                        emitter.onCompleted();
-                    }
-
-                    @Override
-                    public void onError(BillingException e) {
-                        emitter.onError(e);
-                    }
-                });
-            }
-        });
+        return consumePurchase(itemId);
     }
 
     /**
@@ -185,7 +173,7 @@ public class BillingProcessorObservable {
 
             @Override
             public void call(final CompletableEmitter emitter) {
-                mBillingProcessor.consume(itemId, new ConsumeItemHandler() {
+                getBillingProcessor().consume(itemId, new ConsumeItemHandler() {
                     @Override
                     public void onSuccess() {
                         emitter.onCompleted();
@@ -212,7 +200,7 @@ public class BillingProcessorObservable {
         return Observable.fromEmitter(new Action1<Emitter<Purchases>>() {
             @Override
             public void call(final Emitter<Purchases> emitter) {
-                mBillingProcessor.getPurchases(purchaseType, new PurchasesHandler() {
+                getBillingProcessor().getPurchases(purchaseType, new PurchasesHandler() {
                     @Override
                     public void onSuccess(Purchases purchases) {
                         emitter.onNext(purchases);
@@ -243,7 +231,7 @@ public class BillingProcessorObservable {
         return Observable.fromEmitter(new Action1<Emitter<Purchases>>() {
             @Override
             public void call(final Emitter<Purchases> emitter) {
-                mBillingProcessor.getInventory(purchaseType, new InventoryHandler() {
+                getBillingProcessor().getInventory(purchaseType, new InventoryHandler() {
                     @Override
                     public void onSuccess(Purchases purchases) {
                         emitter.onNext(purchases);
@@ -271,7 +259,7 @@ public class BillingProcessorObservable {
         return Observable.fromEmitter(new Action1<Emitter<ItemDetails>>() {
             @Override
             public void call(final Emitter<ItemDetails> emitter) {
-                mBillingProcessor.getItemDetails(purchaseType, itemIds, new ItemDetailsHandler() {
+                getBillingProcessor().getItemDetails(purchaseType, itemIds, new ItemDetailsHandler() {
                     @Override
                     public void onSuccess(ItemDetails itemDetails) {
                         emitter.onNext(itemDetails);
@@ -298,7 +286,7 @@ public class BillingProcessorObservable {
      * @return true if the result was processed in the library
      */
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
-        return mBillingProcessor.onActivityResult(requestCode, resultCode, data);
+        return getBillingProcessor().onActivityResult(requestCode, resultCode, data);
     }
 
     /**
@@ -312,7 +300,7 @@ public class BillingProcessorObservable {
      * since the purchase process is not controlled by the app.
      */
     public void cancel() {
-        mBillingProcessor.cancel();
+        getBillingProcessor().cancel();
     }
 
     /**
@@ -322,6 +310,13 @@ public class BillingProcessorObservable {
      * Once you release it, you MUST to create a new instance
      */
     public void release() {
-        mBillingProcessor.release();
+        getBillingProcessor().release();
+    }
+
+    public BillingProcessor getBillingProcessor() {
+        if (mBillingProcessor == null) {
+            mBillingProcessor = new BillingProcessor(mBillingContext, mPurchaseHandler);
+        }
+        return mBillingProcessor;
     }
 }

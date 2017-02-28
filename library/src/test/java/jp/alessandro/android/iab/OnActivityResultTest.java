@@ -20,9 +20,9 @@ package jp.alessandro.android.iab;
 
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.RemoteException;
 
 import com.android.vending.billing.IInAppBillingService;
@@ -31,14 +31,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowApplication;
 
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -47,11 +48,8 @@ import jp.alessandro.android.iab.handler.StartActivityHandler;
 import jp.alessandro.android.iab.response.PurchaseResponse;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 /**
  * Created by Alessandro Yuichi Okimoto on 2017/02/19.
@@ -61,7 +59,6 @@ import static org.mockito.Mockito.when;
 @Config(manifest = Config.NONE, constants = BuildConfig.class)
 public class OnActivityResultTest {
 
-    private Handler mWorkHandler;
     private BillingProcessor mProcessor;
 
     private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
@@ -69,10 +66,6 @@ public class OnActivityResultTest {
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
-    @Mock
-    IInAppBillingService mService;
-    @Mock
-    ServiceBinder mServiceBinder;
     @Mock
     Activity mActivity;
 
@@ -119,22 +112,25 @@ public class OnActivityResultTest {
     private void onActivityResultSuccess(PurchaseType type) throws InterruptedException, RemoteException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int requestCode = 1001;
+        final int itemIndex = 0;
 
-        setUpStartPurchase(latch, type, true);
+        String itemId = String.format(Locale.ENGLISH, "%s_%d", Constants.TEST_PRODUCT_ID, itemIndex);
+
+        setUpStartPurchase(latch, itemId, type, true);
         mProcessor.startPurchase(mActivity,
                 requestCode,
-                Constants.TEST_PRODUCT_ID,
+                itemId,
                 type,
                 Constants.TEST_DEVELOPER_PAYLOAD,
                 new StartActivityHandler() {
                     @Override
                     public void onSuccess() {
-                        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent())).isTrue();
+                        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent(itemIndex))).isTrue();
                     }
 
                     @Override
                     public void onError(BillingException e) {
-                        throw new IllegalStateException();
+                        throw new IllegalStateException(e);
                     }
                 });
         latch.await(15, TimeUnit.SECONDS);
@@ -150,9 +146,13 @@ public class OnActivityResultTest {
         onActivityResultWithRelease(PurchaseType.SUBSCRIPTION);
     }
 
+    @SuppressWarnings("checkstyle:methodlength")
     private void onActivityResultWithRelease(PurchaseType type) throws InterruptedException, RemoteException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int requestCode = 1001;
+        final int itemIndex = 0;
+
+        String itemId = String.format(Locale.ENGLISH, "%s_%d", Constants.TEST_PRODUCT_ID, itemIndex);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(mContext.getContext(), 1, new Intent(), 0);
         Bundle bundle = new Bundle();
@@ -167,16 +167,19 @@ public class OnActivityResultTest {
         };
         mProcessor = spy(new BillingProcessor(mContext, handler));
 
-        setUpProcessor(bundle, type);
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStubCreator.GET_BUY_INTENT, bundle);
+        setServiceStub(stubBundle);
+
         mProcessor.startPurchase(mActivity,
                 requestCode,
-                Constants.TEST_PRODUCT_ID,
+                itemId,
                 type,
                 Constants.TEST_DEVELOPER_PAYLOAD,
                 new StartActivityHandler() {
                     @Override
                     public void onSuccess() {
-                        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent())).isTrue();
+                        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent(itemIndex))).isTrue();
                         mProcessor.release();
                     }
 
@@ -198,9 +201,13 @@ public class OnActivityResultTest {
         onActivityResultWithCancel(PurchaseType.SUBSCRIPTION);
     }
 
+    @SuppressWarnings("checkstyle:methodlength")
     private void onActivityResultWithCancel(PurchaseType type) throws InterruptedException, RemoteException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int requestCode = 1001;
+
+        final int itemIndex = 0;
+        String itemId = String.format(Locale.ENGLISH, "%s_%d", Constants.TEST_PRODUCT_ID, itemIndex);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(mContext.getContext(), 1, new Intent(), 0);
         Bundle bundle = new Bundle();
@@ -215,16 +222,19 @@ public class OnActivityResultTest {
         };
         mProcessor = spy(new BillingProcessor(mContext, handler));
 
-        setUpProcessor(bundle, type);
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStubCreator.GET_BUY_INTENT, bundle);
+        setServiceStub(stubBundle);
+
         mProcessor.startPurchase(mActivity,
                 requestCode,
-                Constants.TEST_PRODUCT_ID,
+                itemId,
                 type,
                 Constants.TEST_DEVELOPER_PAYLOAD,
                 new StartActivityHandler() {
                     @Override
                     public void onSuccess() {
-                        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent())).isTrue();
+                        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent(itemIndex))).isTrue();
                         mProcessor.cancel();
                     }
 
@@ -240,7 +250,7 @@ public class OnActivityResultTest {
         final CountDownLatch latch = new CountDownLatch(1);
         final int requestCode = 1001;
 
-        setUpStartPurchase(latch, type, false);
+        setUpStartPurchase(latch, Constants.TEST_PRODUCT_ID, type, false);
         mProcessor.startPurchase(mActivity,
                 requestCode,
                 Constants.TEST_PRODUCT_ID,
@@ -265,16 +275,19 @@ public class OnActivityResultTest {
         final CountDownLatch latch = new CountDownLatch(1);
         final int requestCode = 1001;
 
-        setUpStartPurchase(latch, type, false);
+        final int itemIndex = 0;
+        String itemId = String.format(Locale.ENGLISH, "%s_%d", Constants.TEST_PRODUCT_ID, itemIndex);
+
+        setUpStartPurchase(latch, Constants.TEST_PRODUCT_ID, type, false);
         mProcessor.startPurchase(mActivity,
                 requestCode,
-                Constants.TEST_PRODUCT_ID,
+                itemId,
                 type,
                 Constants.TEST_DEVELOPER_PAYLOAD,
                 new StartActivityHandler() {
                     @Override
                     public void onSuccess() {
-                        assertThat(mProcessor.onActivityResult(1002, -1, DataCreator.newOkIntent())).isFalse();
+                        assertThat(mProcessor.onActivityResult(1002, -1, DataCreator.newOkIntent(itemIndex))).isFalse();
                         latch.countDown();
                     }
 
@@ -290,7 +303,7 @@ public class OnActivityResultTest {
         final CountDownLatch latch = new CountDownLatch(1);
         final int requestCode = 1001;
 
-        setUpStartPurchase(latch, type, false);
+        setUpStartPurchase(latch, Constants.TEST_PRODUCT_ID, type, false);
         mProcessor.startPurchase(mActivity,
                 requestCode,
                 Constants.TEST_PRODUCT_ID,
@@ -311,6 +324,7 @@ public class OnActivityResultTest {
     }
 
     private void setUpStartPurchase(final CountDownLatch latch,
+                                    final String itemId,
                                     final PurchaseType type,
                                     final boolean checkSuccess) throws RemoteException {
 
@@ -319,12 +333,15 @@ public class OnActivityResultTest {
         bundle.putLong(Constants.RESPONSE_CODE, 0L);
         bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
 
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStubCreator.GET_BUY_INTENT, bundle);
+
         PurchaseHandler handler = new PurchaseHandler() {
             @Override
             public void call(PurchaseResponse response) {
                 if (checkSuccess) {
                     assertThat(response.isSuccess()).isTrue();
-                    assertThat(response.getPurchase()).isNotNull();
+                    assertThat(response.getPurchase().getSku()).isEqualTo(itemId);
                 } else {
                     assertThat(response.getException().getErrorCode()).isEqualTo(Constants.ERROR_VERIFICATION_FAILED);
                     assertThat(response.getException().getMessage()).isEqualTo(Constants.ERROR_MSG_VERIFICATION_FAILED);
@@ -333,30 +350,8 @@ public class OnActivityResultTest {
             }
         };
         mProcessor = spy(new BillingProcessor(mContext, handler));
-        mWorkHandler = mProcessor.getWorkHandler();
 
-        setUpProcessor(bundle, type);
-    }
-
-    private void setUpProcessor(Bundle bundle, PurchaseType type) throws RemoteException {
-        when(mService.getBuyIntent(
-                mContext.getApiVersion(),
-                mContext.getContext().getPackageName(),
-                Constants.TEST_PRODUCT_ID,
-                type == PurchaseType.SUBSCRIPTION ? Constants.TYPE_SUBSCRIPTION : Constants.TYPE_IN_APP,
-                Constants.TEST_DEVELOPER_PAYLOAD
-        )).thenReturn(bundle);
-
-        doReturn(true).when(mProcessor).isSupported(type, mService);
-        doReturn(mServiceBinder).when(mProcessor).createServiceBinder();
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                ServiceBinder.Handler handler = invocation.getArgument(0);
-                handler.onBind(mService);
-                return null;
-            }
-        }).when(mServiceBinder).getServiceAsync(any(ServiceBinder.Handler.class));
+        setServiceStub(stubBundle);
     }
 
     private void executeOnDifferentThread(final CountDownLatch latch, final int requestCode) {
@@ -374,5 +369,12 @@ public class OnActivityResultTest {
             }
         });
         th.start();
+    }
+
+    private void setServiceStub(final Bundle stubBundle) {
+        ShadowApplication shadowApplication = Shadows.shadowOf(RuntimeEnvironment.application);
+        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
+        ComponentName cn = mock(ComponentName.class);
+        shadowApplication.setComponentNameAndServiceForBindService(cn, stub);
     }
 }
