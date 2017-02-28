@@ -118,6 +118,32 @@ public class CancelTest {
         }
     }
 
+    @Test
+    public void cancelFirstBeforeDoSomething() throws InterruptedException, RemoteException {
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
+
+        doReturn(responseBundle).when(mService).getPurchases(
+                mContext.getApiVersion(), mContext.getContext().getPackageName(), Constants.ITEM_TYPE_INAPP, null);
+
+        mProcessor.cancel();
+        mProcessor.getPurchases(PurchaseType.IN_APP, new PurchasesHandler() {
+            @Override
+            public void onSuccess(Purchases purchases) {
+                assertThat(purchases.getAll()).isNotEmpty();
+                mProcessor.cancel();
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(BillingException e) {
+                throw new IllegalStateException(e);
+            }
+        });
+        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+    }
+
     private void getPurchasesAndCancel(final CountDownLatch latch, final AtomicInteger times) throws InterruptedException {
         mProcessor.getPurchases(PurchaseType.IN_APP, new PurchasesHandler() {
             @Override
@@ -137,7 +163,7 @@ public class CancelTest {
 
             @Override
             public void onError(BillingException e) {
-                throw new IllegalStateException();
+                throw new IllegalStateException(e);
             }
         });
         Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
