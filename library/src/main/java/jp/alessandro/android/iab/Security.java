@@ -67,7 +67,7 @@ class Security {
     public boolean verifyPurchase(Logger logger, String base64PublicKey, String signedData, String signature) {
         if (TextUtils.isEmpty(base64PublicKey) || TextUtils.isEmpty(signedData) || TextUtils.isEmpty(signature)) {
             // In case of tests it will return true because test purchases doesn't have a signature
-            if (mIsDebug && !TextUtils.isEmpty(signedData) && TextUtils.isEmpty(signature)) {
+            if (mIsDebug && TextUtils.isEmpty(signature) && !TextUtils.isEmpty(signedData)) {
                 return isTestingStaticResponse(logger, signedData);
             }
             logger.e(Logger.TAG, "Purchase verification failed: missing data.");

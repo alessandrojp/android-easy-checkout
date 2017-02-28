@@ -60,7 +60,7 @@ public class SecurityTest {
 
     @Before
     public void setUp() {
-        mSecurity = spy(new Security(true));
+        mSecurity = spy(new Security(false));
     }
 
     @Test
@@ -129,21 +129,13 @@ public class SecurityTest {
     }
 
     @Test
-    public void verifyPurchaseStaticResponseSignedDataDebugTrue() {
-        Logger logger = new DiscardLogger();
-        String base64PublicKey = "base64PublicKey";
-        String signedData = "signedData";
-        String signature = "";
-
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-    }
-
-    @Test
-    public void verifyPurchaseStaticResponseSignedEmptyDebugTrue() {
+    public void verifyPurchaseStaticResponseSignedEmpty() {
         Logger logger = new DiscardLogger();
         String base64PublicKey = "base64PublicKey";
         String signedData = "";
         String signature = "signature";
+
+        mSecurity = new Security(true);
 
         assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
     }
@@ -155,6 +147,8 @@ public class SecurityTest {
         String signedData = "\"{\"test\"}\"";
         String signature = "";
 
+        mSecurity = new Security(true);
+
         assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
     }
 
@@ -164,6 +158,8 @@ public class SecurityTest {
         String base64PublicKey = "base64PublicKey";
         String signedData = "{\"productId\": \"android.test.test\"}";
         String signature = "";
+
+        mSecurity = new Security(true);
 
         assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
     }
@@ -175,6 +171,8 @@ public class SecurityTest {
         String signedData = "{\"productId\": \"android.test.purchased\"}";
         String signature = "";
 
+        mSecurity = new Security(true);
+
         assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
     }
 
@@ -184,6 +182,8 @@ public class SecurityTest {
         String base64PublicKey = "base64PublicKey";
         String signedData = "{\"productId\": \"android.test.canceled\"}";
         String signature = "";
+
+        mSecurity = new Security(true);
 
         assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
     }
@@ -195,6 +195,8 @@ public class SecurityTest {
         String signedData = "{\"productId\": \"android.test.refunded\"}";
         String signature = "";
 
+        mSecurity = new Security(true);
+
         assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
     }
 
@@ -204,6 +206,8 @@ public class SecurityTest {
         String base64PublicKey = "base64PublicKey";
         String signedData = "{\"productId\": \"android.test.item_unavailable\"}";
         String signature = "";
+
+        mSecurity = new Security(true);
 
         assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
     }

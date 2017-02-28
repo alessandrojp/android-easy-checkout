@@ -77,10 +77,6 @@ public class StartActivityTest {
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
     @Mock
-    IInAppBillingService mService;
-    @Mock
-    ServiceBinder mServiceBinder;
-    @Mock
     Activity mActivity;
 
     @Test
@@ -193,7 +189,7 @@ public class StartActivityTest {
 
                         @Override
                         public void onError(BillingException e) {
-                            throw new IllegalStateException();
+                            throw new IllegalStateException(e);
                         }
                     });
         } catch (IllegalArgumentException e) {
@@ -215,7 +211,7 @@ public class StartActivityTest {
 
                         @Override
                         public void onError(BillingException e) {
-                            throw new IllegalStateException();
+                            throw new IllegalStateException(e);
                         }
                     });
         } catch (IllegalArgumentException e) {
@@ -237,7 +233,7 @@ public class StartActivityTest {
 
                         @Override
                         public void onError(BillingException e) {
-                            throw new IllegalStateException();
+                            throw new IllegalStateException(e);
                         }
                     });
         } catch (IllegalArgumentException e) {

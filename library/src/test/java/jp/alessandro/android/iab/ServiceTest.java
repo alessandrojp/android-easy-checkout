@@ -61,13 +61,6 @@ public class ServiceTest {
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
-    @Mock
-    IInAppBillingService mService;
-    @Mock
-    ServiceBinder mServiceBinder;
-    @Mock
-    Activity mActivity;
-
     @Before
     public void setUp() throws Exception {
         ShadowApplication shadowApplication = Shadows.shadowOf(RuntimeEnvironment.application);
