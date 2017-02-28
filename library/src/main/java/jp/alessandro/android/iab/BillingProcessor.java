@@ -141,13 +141,15 @@ public class BillingProcessor {
                     try {
                         checkIfBillingIsSupported(PurchaseType.IN_APP, service);
 
-                        int response = service.consumePurchase(mContext.getApiVersion(),
-                                mContext.getContext().getPackageName(), getToken(service, itemId));
-
+                        String token = getToken(service, itemId);
+                        int response = service.consumePurchase(
+                                mContext.getApiVersion(),
+                                mContext.getContext().getPackageName(),
+                                token
+                        );
                         if (response != Constants.BILLING_RESPONSE_RESULT_OK) {
                             throw new BillingException(response, Constants.ERROR_MSG_CONSUME);
                         }
-
                         postConsumePurchaseSuccess(handler);
 
                     } catch (BillingException e) {

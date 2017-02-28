@@ -105,10 +105,20 @@ public class SecurityTest {
     }
 
     @Test
-    public void verifyPurchaseSignatureEmpty() {
+    public void verifyPurchaseStaticResponseJsonBroken() {
         Logger logger = new DiscardLogger();
         String base64PublicKey = "base64PublicKey";
-        String signedData = "signedData";
+        String signedData = "\"{\"test\"}\"";
+        String signature = "";
+
+        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+    }
+
+    @Test
+    public void verifyPurchaseStaticResponseNotMatch() {
+        Logger logger = new DiscardLogger();
+        String base64PublicKey = "base64PublicKey";
+        String signedData = "{\"productId\": \"android.test.test\"}";
         String signature = "";
 
         assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();

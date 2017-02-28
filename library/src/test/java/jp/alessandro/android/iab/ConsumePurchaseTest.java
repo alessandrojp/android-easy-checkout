@@ -30,7 +30,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
@@ -59,10 +58,10 @@ import static org.mockito.Mockito.spy;
 @Config(manifest = Config.NONE, constants = BuildConfig.class)
 public class ConsumePurchaseTest {
 
-    private Handler mWorkHandler;
-    private BillingProcessor mProcessor;
+    @Rule
+    public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
-    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
+    private final BillingContext mContext = DataCreator.newBillingContext(spy(RuntimeEnvironment.application));
     private final PurchaseHandler mPurchaseHandler = new PurchaseHandler() {
         @Override
         public void call(PurchaseResponse response) {
@@ -70,13 +69,8 @@ public class ConsumePurchaseTest {
         }
     };
 
-    @Rule
-    public MockitoRule mMockitoRule = MockitoJUnit.rule();
-
-    @Mock
-    IInAppBillingService mService;
-    @Mock
-    ServiceBinder mServiceBinder;
+    private Handler mWorkHandler;
+    private BillingProcessor mProcessor;
 
     @Before
     public void setUp() {
@@ -262,8 +256,11 @@ public class ConsumePurchaseTest {
     public void remoteException() throws InterruptedException, RemoteException, BillingException {
         final CountDownLatch latch = new CountDownLatch(1);
 
+        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
-        stubBundle.putBoolean(ServiceStubCreater.THROW_REMOTE_EXCEPTION_ON_GET_ACTIONS, true);
+        stubBundle.putBoolean(ServiceStubCreater.THROW_REMOTE_EXCEPTION_ON_CONSUME_PURCHASE, true);
+        stubBundle.putParcelable(ServiceStubCreater.GET_PURCHASES, responseBundle);
+
         setServiceStub(stubBundle);
 
         mProcessor.consume(String.format(Locale.US, "%s_%d", Constants.TEST_PRODUCT_ID, 0), new ConsumeItemHandler() {

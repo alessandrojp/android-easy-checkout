@@ -20,6 +20,7 @@ package jp.alessandro.android.iab;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
@@ -35,6 +36,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowApplication;
 
@@ -48,7 +50,6 @@ import jp.alessandro.android.iab.response.PurchaseResponse;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.robolectric.Shadows.shadowOf;
 
 /**
@@ -78,12 +79,12 @@ public class GetPurchasesTest {
 
     @Before
     public void setUp() {
-        mProcessor = spy(new BillingProcessor(mContext, new PurchaseHandler() {
+        mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
             @Override
             public void call(PurchaseResponse response) {
                 assertThat(response).isNotNull();
             }
-        }));
+        });
         mWorkHandler = mProcessor.getWorkHandler();
     }
 
@@ -210,6 +211,37 @@ public class GetPurchasesTest {
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(5, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void bindServiceError() throws InterruptedException, RemoteException, BillingException {
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
+        mProcessor = new BillingProcessor(context, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                throw new IllegalStateException();
+            }
+        });
+        mWorkHandler = mProcessor.getWorkHandler();
+
+        mProcessor.getPurchases(PurchaseType.IN_APP, new PurchasesHandler() {
+            @Override
+            public void onSuccess(Purchases purchases) {
+                throw new IllegalStateException();
+            }
+
+            @Override
+            public void onError(BillingException e) {
+                assertThat(e.getErrorCode()).isEqualTo(Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION);
+                assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_BIND_SERVICE_FAILED);
+                latch.countDown();
+            }
+        });
+        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+
+        latch.await(15, TimeUnit.SECONDS);
     }
 
     private void getPurchases(final PurchaseType type) throws InterruptedException {

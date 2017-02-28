@@ -21,8 +21,10 @@ package jp.alessandro.android.iab;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.RemoteException;
 
 import com.android.vending.billing.IInAppBillingService;
@@ -258,6 +260,42 @@ public class StartActivityTest {
         } catch (IllegalArgumentException e) {
             assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
         }
+    }
+
+    @Test
+    public void bindServiceError() throws InterruptedException, RemoteException, BillingException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final int requestCode = 1001;
+
+        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
+
+        mProcessor = new BillingProcessor(context, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                throw new IllegalStateException();
+            }
+        });
+
+        Handler workHandler = mProcessor.getWorkHandler();
+
+        mProcessor.startPurchase(mActivity, requestCode, Constants.TEST_PRODUCT_ID, PurchaseType.IN_APP, Constants.TEST_DEVELOPER_PAYLOAD,
+                new StartActivityHandler() {
+                    @Override
+                    public void onSuccess() {
+                        throw new IllegalStateException();
+                    }
+
+                    @Override
+                    public void onError(BillingException e) {
+                        assertThat(e.getErrorCode()).isEqualTo(Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION);
+                        assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_BIND_SERVICE_FAILED);
+                        latch.countDown();
+                    }
+                }
+        );
+        Shadows.shadowOf(workHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+
+        latch.await(15, TimeUnit.SECONDS);
     }
 
     private void isSupportedRemoteException(PurchaseType type) throws InterruptedException, RemoteException {

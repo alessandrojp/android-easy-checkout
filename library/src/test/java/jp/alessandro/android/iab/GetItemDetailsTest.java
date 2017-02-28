@@ -20,6 +20,7 @@ package jp.alessandro.android.iab;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
@@ -35,6 +36,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowApplication;
 
@@ -176,6 +178,42 @@ public class GetItemDetailsTest {
         } catch (IllegalArgumentException e) {
             assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
         }
+    }
+
+    @Test
+    public void bindServiceError() throws InterruptedException, RemoteException, BillingException {
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
+
+        ArrayList<String> itemIds = new ArrayList<>();
+        itemIds.add("");
+
+        mProcessor = new BillingProcessor(context, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                throw new IllegalStateException();
+            }
+        });
+
+        mWorkHandler = mProcessor.getWorkHandler();
+
+        mProcessor.getItemDetails(PurchaseType.IN_APP, itemIds, new ItemDetailsHandler() {
+            @Override
+            public void onSuccess(ItemDetails itemDetails) {
+                throw new IllegalStateException();
+            }
+
+            @Override
+            public void onError(BillingException e) {
+                assertThat(e.getErrorCode()).isEqualTo(Constants.ERROR_BIND_SERVICE_FAILED_EXCEPTION);
+                assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_BIND_SERVICE_FAILED);
+                latch.countDown();
+            }
+        });
+        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+
+        latch.await(15, TimeUnit.SECONDS);
     }
 
     private void getItemDetails(final PurchaseType type) throws InterruptedException {

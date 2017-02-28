@@ -38,6 +38,7 @@ public class ServiceStubCreater {
     static final String GET_SKU_DETAILS = "get_sku_details";
     static final String IN_APP_BILLING_SUPPORTED = "is_billing_supported";
     static final String THROW_REMOTE_EXCEPTION_ON_GET_ACTIONS = "throw_remote_exception_on_get_actions";
+    static final String THROW_REMOTE_EXCEPTION_ON_CONSUME_PURCHASE = "throw_remote_exception_on_consume_purchase";
     static final String THROW_REMOTE_EXCEPTION_ON_BILLING_SUPPORTED = "throw_remote_exception_on_billing_supported";
 
     @SuppressWarnings("checkstyle:methodlength")
@@ -96,7 +97,7 @@ public class ServiceStubCreater {
                                        String packageName,
                                        String purchaseToken) throws RemoteException {
 
-                if (bundle.getBoolean(THROW_REMOTE_EXCEPTION_ON_GET_ACTIONS, false)) {
+                if (bundle.getBoolean(THROW_REMOTE_EXCEPTION_ON_CONSUME_PURCHASE, false)) {
                     throw new RemoteException();
                 }
                 return bundle.getInt(CONSUME_PURCHASE, 0);

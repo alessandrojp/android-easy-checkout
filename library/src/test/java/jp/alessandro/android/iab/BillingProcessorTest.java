@@ -296,16 +296,6 @@ public class BillingProcessorTest {
         latch.await(15, TimeUnit.SECONDS);
     }
 
-    @Test
-    public void releaseAndGetPurchases() {
-        mProcessor.release();
-        try {
-            mProcessor.getPurchases(PurchaseType.IN_APP, null);
-        } catch (IllegalStateException e) {
-            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_LIBRARY_ALREADY_RELEASED);
-        }
-    }
-
     private void startActivity(final CountDownLatch latch,
                                Bundle bundle,
                                int requestCode,

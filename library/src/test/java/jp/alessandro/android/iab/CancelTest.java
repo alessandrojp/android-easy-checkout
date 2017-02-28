@@ -18,6 +18,7 @@
 
 package jp.alessandro.android.iab;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
@@ -44,6 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.PurchasesHandler;
+import jp.alessandro.android.iab.handler.StartActivityHandler;
 import jp.alessandro.android.iab.response.PurchaseResponse;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
@@ -67,6 +69,8 @@ public class CancelTest {
     IInAppBillingService mService;
     @Mock
     ServiceBinder mServiceBinder;
+    @Mock
+    Activity mActivity;
 
     private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
 
@@ -104,6 +108,30 @@ public class CancelTest {
                 mContext.getApiVersion(), mContext.getContext().getPackageName(), Constants.ITEM_TYPE_INAPP, null);
 
         getPurchasesAndCancel(latch, new AtomicInteger(10));
+        latch.await(15, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void startActivityAndCancel() throws InterruptedException, RemoteException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        int requestCode = 1001;
+
+        mProcessor.startPurchase(mActivity, requestCode, Constants.TEST_PRODUCT_ID, PurchaseType.IN_APP, Constants.TEST_DEVELOPER_PAYLOAD,
+                new StartActivityHandler() {
+                    @Override
+                    public void onSuccess() {
+                        throw new IllegalStateException();
+                    }
+
+                    @Override
+                    public void onError(BillingException e) {
+                        assertThat(e.getErrorCode()).isEqualTo(Constants.ERROR_UNEXPECTED_TYPE);
+                        assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE_NULL);
+                        mProcessor.cancel();
+                        latch.countDown();
+                    }
+                });
+        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
         latch.await(15, TimeUnit.SECONDS);
     }
 

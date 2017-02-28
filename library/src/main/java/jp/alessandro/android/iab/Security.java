@@ -42,7 +42,7 @@ import jp.alessandro.android.iab.logger.Logger;
  * make it harder for an attacker to replace the code with stubs that treat all
  * purchases as verified.
  */
-public class Security {
+class Security {
 
     static final String KEY_FACTORY_ALGORITHM = "RSA";
     static final String SIGNATURE_ALGORITHM = "SHA1withRSA";
@@ -59,12 +59,11 @@ public class Security {
      * @param signature       the signature for the data, signed with the private key
      */
     public boolean verifyPurchase(Logger logger, String base64PublicKey, String signedData, String signature) {
-
-        if (BuildConfig.DEBUG && !TextUtils.isEmpty(signedData) && TextUtils.isEmpty(signature)) {
-            return isTestingStaticResponse(logger, signedData);
-        }
-
         if (TextUtils.isEmpty(base64PublicKey) || TextUtils.isEmpty(signedData) || TextUtils.isEmpty(signature)) {
+            // In case of tests it will return true because test purchases doesn't have a signature
+            if (BuildConfig.DEBUG && !TextUtils.isEmpty(signedData) && TextUtils.isEmpty(signature)) {
+                return isTestingStaticResponse(logger, signedData);
+            }
             logger.e(Logger.TAG, "Purchase verification failed: missing data.");
             return false;
         }
