@@ -50,7 +50,7 @@ public class PrivateConstructorTest {
             IllegalAccessException,
             InvocationTargetException {
 
-        Class<?>[] classesToConstruct = {Checker.class, ResponseExtractor.class};
+        Class<?>[] classesToConstruct = {Constants.class, Checker.class, ResponseExtractor.class};
         for (Class<?> clazz : classesToConstruct) {
             Constructor<?> constructor = clazz.getDeclaredConstructor();
             constructor.setAccessible(true);
