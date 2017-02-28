@@ -129,6 +129,26 @@ public class SecurityTest {
     }
 
     @Test
+    public void verifyPurchaseStaticResponseSignedDataDebugTrue() {
+        Logger logger = new DiscardLogger();
+        String base64PublicKey = "base64PublicKey";
+        String signedData = "signedData";
+        String signature = "";
+
+        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+    }
+
+    @Test
+    public void verifyPurchaseStaticResponseSignedEmptyDebugTrue() {
+        Logger logger = new DiscardLogger();
+        String base64PublicKey = "base64PublicKey";
+        String signedData = "";
+        String signature = "signature";
+
+        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+    }
+
+    @Test
     public void verifyPurchaseStaticResponseJsonBroken() {
         Logger logger = new DiscardLogger();
         String base64PublicKey = "base64PublicKey";
