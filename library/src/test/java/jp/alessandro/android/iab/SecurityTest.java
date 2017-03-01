@@ -33,6 +33,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.ArrayList;
+import java.util.List;
 
 import jp.alessandro.android.iab.logger.DiscardLogger;
 import jp.alessandro.android.iab.logger.Logger;
@@ -56,13 +58,14 @@ public class SecurityTest {
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
-    private Security mSecurity;
+    private List<Security> mSecurities;
 
     @Before
     public void setUp() {
-        mSecurity = spy(new Security(false));
+        mSecurities = new ArrayList<>();
+        mSecurities.add(spy(new Security(false)));
+        mSecurities.add(spy(new Security(true)));
     }
-
     @Test
     public void verifyPurchaseSuccess() {
         Logger logger = new DiscardLogger();
@@ -70,7 +73,9 @@ public class SecurityTest {
         String signedData = Constants.TEST_JSON_RECEIPT;
         String signature = DataSigner.sign(signedData);
 
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
+        }
     }
 
     @Test
@@ -81,7 +86,9 @@ public class SecurityTest {
         String signedDifferentData = Constants.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE;
         String signature = DataSigner.sign(signedDifferentData);
 
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        }
     }
 
     @Test
@@ -92,7 +99,9 @@ public class SecurityTest {
         String signedDifferentData = Constants.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE;
         String signature = DataSigner.sign(signedDifferentData);
 
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        }
     }
 
     @Test
@@ -103,41 +112,45 @@ public class SecurityTest {
         String signedDifferentData = Constants.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE;
         String signature = DataSigner.sign(signedDifferentData);
 
-        mSecurity = new Security(false);
-
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        }
     }
 
     @Test
     public void verifyPurchaseBase64PublicKeyEmpty() {
         Logger logger = new DiscardLogger();
         String base64PublicKey = "";
-        String signedData = "";
-        String signature = "";
+        String signedData = "signedData";
+        String signature = "signature";
 
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        }
     }
 
     @Test
-    public void verifyPurchaseSignedDataEmpty() {
+    public void verifyPurchaseSignedDataAndSignatureEmpty() {
         Logger logger = new DiscardLogger();
         String base64PublicKey = "base64PublicKey";
         String signedData = "";
         String signature = "";
 
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        }
     }
 
     @Test
-    public void verifyPurchaseStaticResponseSignedEmpty() {
+    public void verifyPurchaseStaticResponseSignedDataEmpty() {
         Logger logger = new DiscardLogger();
         String base64PublicKey = "base64PublicKey";
         String signedData = "";
         String signature = "signature";
 
-        mSecurity = new Security(true);
-
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        }
     }
 
     @Test
@@ -147,9 +160,9 @@ public class SecurityTest {
         String signedData = "\"{\"test\"}\"";
         String signature = "";
 
-        mSecurity = new Security(true);
-
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        }
     }
 
     @Test
@@ -159,9 +172,9 @@ public class SecurityTest {
         String signedData = "{\"productId\": \"android.test.test\"}";
         String signature = "";
 
-        mSecurity = new Security(true);
-
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+        }
     }
 
     @Test
@@ -171,9 +184,9 @@ public class SecurityTest {
         String signedData = "{\"productId\": \"android.test.purchased\"}";
         String signature = "";
 
-        mSecurity = new Security(true);
-
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isEqualTo(s.isDebug());
+        }
     }
 
     @Test
@@ -183,9 +196,9 @@ public class SecurityTest {
         String signedData = "{\"productId\": \"android.test.canceled\"}";
         String signature = "";
 
-        mSecurity = new Security(true);
-
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isEqualTo(s.isDebug());
+        }
     }
 
     @Test
@@ -195,9 +208,9 @@ public class SecurityTest {
         String signedData = "{\"productId\": \"android.test.refunded\"}";
         String signature = "";
 
-        mSecurity = new Security(true);
-
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isEqualTo(s.isDebug());
+        }
     }
 
     @Test
@@ -207,9 +220,9 @@ public class SecurityTest {
         String signedData = "{\"productId\": \"android.test.item_unavailable\"}";
         String signature = "";
 
-        mSecurity = new Security(true);
-
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
+        for (Security s : mSecurities) {
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isEqualTo(s.isDebug());
+        }
     }
 
     @Test
@@ -221,10 +234,11 @@ public class SecurityTest {
         String signedData = "signedData";
         String signature = "signature";
 
-        doThrow(new NoSuchAlgorithmException()).when(mSecurity).generatePublicKey(base64PublicKey);
-
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        verify(mSecurity).generatePublicKey(base64PublicKey);
+        for (Security s : mSecurities) {
+            doThrow(new NoSuchAlgorithmException()).when(s).generatePublicKey(base64PublicKey);
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+            verify(s).generatePublicKey(base64PublicKey);
+        }
     }
 
     @Test
@@ -236,10 +250,11 @@ public class SecurityTest {
         String signedData = "signedData";
         String signature = "signature";
 
-        doThrow(new InvalidKeySpecException()).when(mSecurity).generatePublicKey(base64PublicKey);
-
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        verify(mSecurity).generatePublicKey(base64PublicKey);
+        for (Security s : mSecurities) {
+            doThrow(new InvalidKeySpecException()).when(s).generatePublicKey(base64PublicKey);
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+            verify(s).generatePublicKey(base64PublicKey);
+        }
     }
 
     @Test
@@ -251,10 +266,11 @@ public class SecurityTest {
         String signedData = "signedData";
         String signature = "signature";
 
-        doThrow(new IllegalArgumentException()).when(mSecurity).generatePublicKey(base64PublicKey);
-
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        verify(mSecurity).generatePublicKey(base64PublicKey);
+        for (Security s : mSecurities) {
+            doThrow(new IllegalArgumentException()).when(s).generatePublicKey(base64PublicKey);
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+            verify(s).generatePublicKey(base64PublicKey);
+        }
     }
 
     @Test
@@ -272,11 +288,14 @@ public class SecurityTest {
         String signature = "signature";
         String base64PublicKey = "base64PublicKey";
 
-        doReturn(publicKey).when(mSecurity).generatePublicKey(anyString());
-        doThrow(new UnsupportedEncodingException()).when(mSecurity).verify(logger, publicKey, signedData, signature);
+        for (Security s : mSecurities) {
+            doReturn(publicKey).when(s).generatePublicKey(anyString());
+            doThrow(new UnsupportedEncodingException()).when(s).verify(logger, publicKey, signedData, signature);
 
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        verify(mSecurity).verify(logger, publicKey, signedData, signature);
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+            verify(s).verify(logger, publicKey, signedData, signature);
+        }
+
     }
 
     @Test
@@ -294,11 +313,13 @@ public class SecurityTest {
         String signature = "signature";
         String base64PublicKey = "base64PublicKey";
 
-        doReturn(publicKey).when(mSecurity).generatePublicKey(anyString());
-        doThrow(new NoSuchAlgorithmException()).when(mSecurity).verify(logger, publicKey, signedData, signature);
+        for (Security s : mSecurities) {
+            doReturn(publicKey).when(s).generatePublicKey(anyString());
+            doThrow(new NoSuchAlgorithmException()).when(s).verify(logger, publicKey, signedData, signature);
 
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        verify(mSecurity).verify(logger, publicKey, signedData, signature);
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+            verify(s).verify(logger, publicKey, signedData, signature);
+        }
     }
 
     @Test
@@ -316,11 +337,13 @@ public class SecurityTest {
         String signature = "signature";
         String base64PublicKey = "base64PublicKey";
 
-        doReturn(publicKey).when(mSecurity).generatePublicKey(anyString());
-        doThrow(new InvalidKeyException()).when(mSecurity).verify(logger, publicKey, signedData, signature);
+        for (Security s : mSecurities) {
+            doReturn(publicKey).when(s).generatePublicKey(anyString());
+            doThrow(new InvalidKeyException()).when(s).verify(logger, publicKey, signedData, signature);
 
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        verify(mSecurity).verify(logger, publicKey, signedData, signature);
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+            verify(s).verify(logger, publicKey, signedData, signature);
+        }
     }
 
     @Test
@@ -338,11 +361,13 @@ public class SecurityTest {
         String signature = "signature";
         String base64PublicKey = "base64PublicKey";
 
-        doReturn(publicKey).when(mSecurity).generatePublicKey(anyString());
-        doThrow(new InvalidKeySpecException()).when(mSecurity).verify(logger, publicKey, signedData, signature);
+        for (Security s : mSecurities) {
+            doReturn(publicKey).when(s).generatePublicKey(anyString());
+            doThrow(new InvalidKeySpecException()).when(s).verify(logger, publicKey, signedData, signature);
 
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        verify(mSecurity).verify(logger, publicKey, signedData, signature);
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+            verify(s).verify(logger, publicKey, signedData, signature);
+        }
     }
 
     @Test
@@ -360,11 +385,13 @@ public class SecurityTest {
         String signature = "signature";
         String base64PublicKey = "base64PublicKey";
 
-        doReturn(publicKey).when(mSecurity).generatePublicKey(anyString());
-        doThrow(new SignatureException()).when(mSecurity).verify(logger, publicKey, signedData, signature);
+        for (Security s : mSecurities) {
+            doReturn(publicKey).when(s).generatePublicKey(anyString());
+            doThrow(new SignatureException()).when(s).verify(logger, publicKey, signedData, signature);
 
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        verify(mSecurity).verify(logger, publicKey, signedData, signature);
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+            verify(s).verify(logger, publicKey, signedData, signature);
+        }
     }
 
     @Test
@@ -382,10 +409,12 @@ public class SecurityTest {
         String signature = "signature";
         String base64PublicKey = "base64PublicKey";
 
-        doReturn(publicKey).when(mSecurity).generatePublicKey(anyString());
-        doThrow(new IllegalArgumentException()).when(mSecurity).verify(logger, publicKey, signedData, signature);
+        for (Security s : mSecurities) {
+            doReturn(publicKey).when(s).generatePublicKey(anyString());
+            doThrow(new IllegalArgumentException()).when(s).verify(logger, publicKey, signedData, signature);
 
-        assertThat(mSecurity.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        verify(mSecurity).verify(logger, publicKey, signedData, signature);
+            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
+            verify(s).verify(logger, publicKey, signedData, signature);
+        }
     }
 }

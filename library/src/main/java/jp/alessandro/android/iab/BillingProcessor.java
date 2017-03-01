@@ -23,7 +23,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -223,7 +222,7 @@ public class BillingProcessor {
                         checkIfBillingIsSupported(purchaseType, service);
 
                         ItemGetter getter = new ItemGetter(mContext);
-                        ItemDetails details = getter.get(service, type, createBundleItemListFromArray(itemIds));
+                        ItemDetails details = getter.get(service, type, itemIds);
 
                         postGetItemDetailsSuccess(details, handler);
                     } catch (BillingException e) {
@@ -548,12 +547,6 @@ public class BillingProcessor {
                 });
             }
         });
-    }
-
-    private Bundle createBundleItemListFromArray(ArrayList<String> itemIds) {
-        Bundle bundle = new Bundle();
-        bundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
-        return bundle;
     }
 
     private PurchaseFlowLauncher createPurchaseFlowLauncher(PurchaseType purchaseType, int requestCode) throws BillingException {

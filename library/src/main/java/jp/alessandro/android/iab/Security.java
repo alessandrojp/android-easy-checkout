@@ -53,6 +53,10 @@ class Security {
         mIsDebug = isDebug;
     }
 
+    public boolean isDebug() {
+        return mIsDebug;
+    }
+
     /**
      * Verifies that the data was signed with the given signature, and returns
      * the verified purchase. The data is in JSON format and signed
@@ -65,9 +69,10 @@ class Security {
      * @param signature       the signature for the data, signed with the private key
      */
     public boolean verifyPurchase(Logger logger, String base64PublicKey, String signedData, String signature) {
+
         if (TextUtils.isEmpty(base64PublicKey) || TextUtils.isEmpty(signedData) || TextUtils.isEmpty(signature)) {
             // In case of tests it will return true because test purchases doesn't have a signature
-            if (mIsDebug && TextUtils.isEmpty(signature) && !TextUtils.isEmpty(signedData)) {
+            if (mIsDebug && !TextUtils.isEmpty(signedData) && TextUtils.isEmpty(signature)) {
                 return isTestingStaticResponse(logger, signedData);
             }
             logger.e(Logger.TAG, "Purchase verification failed: missing data.");

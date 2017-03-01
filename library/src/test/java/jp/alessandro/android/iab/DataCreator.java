@@ -52,6 +52,15 @@ public class DataCreator {
         return intent;
     }
 
+    public static ArrayList<String> createItemIds(int size) {
+        ArrayList<String> itemIds = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            String itemId = String.format(Locale.ENGLISH, "%s_%d", Constants.TEST_PRODUCT_ID, i);
+            itemIds.add(itemId);
+        }
+        return itemIds;
+    }
+
     public static ArrayList<String> createInvalidSignatureRandomlyArray(List<String> purchaseData) {
         int size = purchaseData.size();
         int randomIndex = getRandomIndex(size);

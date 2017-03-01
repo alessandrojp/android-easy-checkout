@@ -28,7 +28,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
@@ -39,8 +38,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Created by Alessandro Yuichi Okimoto on 2017/02/19.
@@ -67,47 +70,50 @@ public class ItemGetterTest {
 
     @Test
     public void remoteException() throws RemoteException {
-        Bundle requestBundle = new Bundle();
+        int size = 10;
+        ArrayList<String> itemIds = DataCreator.createItemIds(size);
 
-        Mockito.when(mService.getSkuDetails(
-                mBillingContext.getApiVersion(),
-                mBillingContext.getContext().getPackageName(),
-                Constants.TYPE_IN_APP,
-                requestBundle
+        when(mService.getSkuDetails(
+                anyInt(),
+                anyString(),
+                anyString(),
+                any(Bundle.class)
         )).thenThrow(RemoteException.class);
 
         ItemDetails itemDetails = null;
         try {
-            itemDetails = mGetter.get(mService, Constants.TYPE_IN_APP, requestBundle);
+            itemDetails = mGetter.get(mService, Constants.TYPE_IN_APP, itemIds);
         } catch (BillingException e) {
             assertThat(e.getErrorCode()).isEqualTo(Constants.ERROR_REMOTE_EXCEPTION);
         } finally {
             assertThat(itemDetails).isNull();
+            verify(mService, times(1)).getSkuDetails(
+                    anyInt(),
+                    anyString(),
+                    anyString(),
+                    any(Bundle.class)
+            );
         }
     }
 
     @Test
-    public void getItemDetails() throws RemoteException, BillingException {
-        ArrayList<String> itemIds = new ArrayList<>();
-        Bundle requestBundle = new Bundle();
-        requestBundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
-
-        int size = 10;
+    public void get20ItemDetails() throws RemoteException, BillingException {
+        int size = 20;
+        ArrayList<String> itemIds = DataCreator.createItemIds(size);
         ArrayList<String> items = DataCreator.createSkuItemDetailsJsonArray(size);
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
         responseBundle.putStringArrayList(Constants.RESPONSE_DETAILS_LIST, items);
-
-        Mockito.when(mService.getSkuDetails(
-                mBillingContext.getApiVersion(),
-                mBillingContext.getContext().getPackageName(),
-                Constants.TYPE_IN_APP,
-                requestBundle
-        )).thenReturn(responseBundle);
-
         ItemDetails itemDetails = null;
+
+        when(mService.getSkuDetails(
+                anyInt(),
+                anyString(),
+                anyString(),
+                any(Bundle.class)
+        )).thenReturn(responseBundle);
         try {
-            itemDetails = mGetter.get(mService, Constants.TYPE_IN_APP, requestBundle);
+            itemDetails = mGetter.get(mService, Constants.TYPE_IN_APP, itemIds);
         } finally {
             assertThat(itemDetails).isNotNull();
             assertThat(itemDetails.getSize()).isEqualTo(size);
@@ -118,22 +124,74 @@ public class ItemGetterTest {
                 assertThat(itemDetails.hasItemId(p.getSku())).isTrue();
                 assertThat(itemDetails.getByItemId(p.getSku())).isNotNull();
             }
+            verify(mService, times(1)).getSkuDetails(
+                    anyInt(),
+                    anyString(),
+                    anyString(),
+                    any(Bundle.class)
+            );
+        }
+    }
+
+    @Test
+    @SuppressWarnings("checkstyle:methodlength")
+    public void get70ItemDetails() throws RemoteException, BillingException {
+        int size = 70;
+        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+        ArrayList<String> items = DataCreator.createSkuItemDetailsJsonArray(size);
+        List<Bundle> splitBundleList = new ArrayList<>();
+
+        for (int i = 0; i < itemIds.size(); i += ItemGetter.MAX_SKU_PER_REQUEST) {
+            int fromIndex = i;
+            int toIndex = Math.min(itemIds.size(), i + ItemGetter.MAX_SKU_PER_REQUEST);
+
+            Bundle bundle = new Bundle();
+            ArrayList<String> list = new ArrayList<>(items.subList(fromIndex, toIndex));
+            bundle.putStringArrayList(Constants.RESPONSE_DETAILS_LIST, list);
+            splitBundleList.add(bundle);
+        }
+
+        when(mService.getSkuDetails(
+                anyInt(),
+                anyString(),
+                anyString(),
+                any(Bundle.class)
+        )).thenReturn(splitBundleList.get(0), splitBundleList.get(1), splitBundleList.get(2), splitBundleList.get(3));
+
+        ItemDetails itemDetails = null;
+        try {
+            itemDetails = mGetter.get(mService, Constants.TYPE_IN_APP, itemIds);
+        } finally {
+            assertThat(itemDetails).isNotNull();
+            assertThat(itemDetails.getSize()).isEqualTo(size);
+            assertThat(itemDetails.getAll()).isNotNull();
+
+            List<Item> purchaseList = itemDetails.getAll();
+            for (Item p : purchaseList) {
+                assertThat(itemDetails.hasItemId(p.getSku())).isTrue();
+                assertThat(itemDetails.getByItemId(p.getSku())).isNotNull();
+            }
+            verify(mService, times(4)).getSkuDetails(
+                    anyInt(),
+                    anyString(),
+                    anyString(),
+                    any(Bundle.class)
+            );
         }
     }
 
     @Test
     public void getItemDetailsJsonBroken() throws RemoteException, BillingException {
-        ArrayList<String> itemIds = new ArrayList<>();
-        Bundle requestBundle = new Bundle();
-        requestBundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
-
+        int size = 10;
+        ArrayList<String> itemIds = DataCreator.createItemIds(size);
         ArrayList<String> items = DataCreator.createSkuDetailsJsonBrokenArray();
+
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
         responseBundle.putStringArrayList(Constants.RESPONSE_DETAILS_LIST, items);
 
         getItemDetails(
-                requestBundle,
+                itemIds,
                 responseBundle,
                 Constants.ERROR_BAD_RESPONSE,
                 Constants.ERROR_MSG_BAD_RESPONSE
@@ -142,15 +200,14 @@ public class ItemGetterTest {
 
     @Test
     public void getItemDetailsWithEmptyArray() throws RemoteException {
-        ArrayList<String> itemIds = new ArrayList<>();
-        Bundle requestBundle = new Bundle();
-        requestBundle.putStringArrayList(Constants.RESPONSE_ITEM_ID_LIST, itemIds);
+        int size = 10;
+        ArrayList<String> itemIds = DataCreator.createItemIds(size);
 
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
 
         getItemDetails(
-                requestBundle,
+                itemIds,
                 responseBundle,
                 Constants.ERROR_UNEXPECTED_TYPE,
                 Constants.ERROR_MSG_GET_SKU_DETAILS_RESPONSE_LIST_NULL
@@ -159,13 +216,14 @@ public class ItemGetterTest {
 
     @Test
     public void getItemDetailsWithArrayNull() throws RemoteException {
-        Bundle requestBundle = new Bundle();
+        int size = 10;
+        ArrayList<String> itemIds = DataCreator.createItemIds(size);
 
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
 
         getItemDetails(
-                requestBundle,
+                itemIds,
                 responseBundle,
                 Constants.ERROR_UNEXPECTED_TYPE,
                 Constants.ERROR_MSG_GET_SKU_DETAILS_RESPONSE_LIST_NULL
@@ -173,31 +231,15 @@ public class ItemGetterTest {
     }
 
     @Test
-    public void responseBundleResponseNull() throws RemoteException {
-        try {
-            mGetter.get(mService, Constants.TYPE_IN_APP, null);
-        } catch (BillingException e) {
-            assertThat(e.getErrorCode()).isEqualTo(Constants.ERROR_UNEXPECTED_TYPE);
-            assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE_NULL);
-        } finally {
-            verify(mService).getSkuDetails(
-                    mBillingContext.getApiVersion(),
-                    mBillingContext.getContext().getPackageName(),
-                    Constants.TYPE_IN_APP,
-                    null
-            );
-            verifyNoMoreInteractions(mService);
-        }
-    }
-
-    @Test
     public void getWithLongResponseCode() throws RemoteException {
-        Bundle requestBundle = new Bundle();
+        int size = 10;
+        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
 
         getItemDetails(
-                requestBundle,
+                itemIds,
                 responseBundle,
                 Constants.ERROR_UNEXPECTED_TYPE,
                 Constants.ERROR_MSG_GET_SKU_DETAILS_RESPONSE_LIST_NULL
@@ -206,12 +248,14 @@ public class ItemGetterTest {
 
     @Test
     public void getWithDifferentResponseCode() throws RemoteException {
-        Bundle requestBundle = new Bundle();
+        int size = 10;
+        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+
         Bundle responseBundle = new Bundle();
         responseBundle.putInt(Constants.RESPONSE_CODE, 3);
 
         getItemDetails(
-                requestBundle,
+                itemIds,
                 responseBundle,
                 3,
                 Constants.ERROR_MSG_GET_SKU_DETAILS
@@ -220,12 +264,14 @@ public class ItemGetterTest {
 
     @Test
     public void getWithIntegerResponseCode() throws RemoteException {
-        Bundle requestBundle = new Bundle();
+        int size = 10;
+        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+
         Bundle responseBundle = new Bundle();
         responseBundle.putInt(Constants.RESPONSE_CODE, 0);
 
         getItemDetails(
-                requestBundle,
+                itemIds,
                 responseBundle,
                 Constants.ERROR_UNEXPECTED_TYPE,
                 Constants.ERROR_MSG_GET_SKU_DETAILS_RESPONSE_LIST_NULL
@@ -234,12 +280,14 @@ public class ItemGetterTest {
 
     @Test
     public void getWithNoResponseCode() throws RemoteException {
-        Bundle requestBundle = new Bundle();
+        int size = 10;
+        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+
         Bundle responseBundle = new Bundle();
 
         getItemDetails(
+                itemIds,
                 responseBundle,
-                requestBundle,
                 Constants.ERROR_UNEXPECTED_TYPE,
                 Constants.ERROR_MSG_GET_SKU_DETAILS_RESPONSE_LIST_NULL
         );
@@ -247,45 +295,46 @@ public class ItemGetterTest {
 
     @Test
     public void stringResponseCode() throws InterruptedException, RemoteException {
-        Bundle requestBundle = new Bundle();
+        int size = 10;
+        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+
         Bundle responseBundle = new Bundle();
         responseBundle.putString(Constants.RESPONSE_CODE, "0");
 
         getItemDetails(
-                requestBundle,
+                itemIds,
                 responseBundle,
                 Constants.ERROR_UNEXPECTED_TYPE,
                 Constants.ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE
         );
     }
 
-    private void getItemDetails(Bundle requestBundle,
+    private void getItemDetails(ArrayList<String> itemIds,
                                 Bundle responseBundle,
                                 int errorCode,
                                 String errorMessage) throws RemoteException {
 
-        Mockito.when(mService.getSkuDetails(
-                mBillingContext.getApiVersion(),
-                mBillingContext.getContext().getPackageName(),
-                Constants.TYPE_IN_APP,
-                requestBundle
+        when(mService.getSkuDetails(
+                anyInt(),
+                anyString(),
+                anyString(),
+                any(Bundle.class)
         )).thenReturn(responseBundle);
 
         ItemDetails itemDetails = null;
         try {
-            itemDetails = mGetter.get(mService, Constants.TYPE_IN_APP, requestBundle);
+            itemDetails = mGetter.get(mService, Constants.TYPE_IN_APP, itemIds);
         } catch (BillingException e) {
             assertThat(e.getErrorCode()).isEqualTo(errorCode);
             assertThat(e.getMessage()).isEqualTo(errorMessage);
         } finally {
             assertThat(itemDetails).isNull();
             verify(mService).getSkuDetails(
-                    mBillingContext.getApiVersion(),
-                    mBillingContext.getContext().getPackageName(),
-                    Constants.TYPE_IN_APP,
-                    requestBundle
+                    anyInt(),
+                    anyString(),
+                    anyString(),
+                    any(Bundle.class)
             );
-            verifyNoMoreInteractions(mService);
         }
     }
 }
