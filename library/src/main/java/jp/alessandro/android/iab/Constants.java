@@ -58,6 +58,9 @@ public class Constants {
     // Failure to consume since item is not owned
     public static final int BILLING_RESPONSE_RESULT_ITEM_NOT_OWNED = 8;
 
+    static final String TYPE_IN_APP = "inapp";
+    static final String TYPE_SUBSCRIPTION = "subs";
+
 
     // ******************** BILLING RESPONSES KEYS ******************** //
     public static final String RESPONSE_CODE = "RESPONSE_CODE";
@@ -131,56 +134,4 @@ public class Constants {
     public static final String ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE_NULL = "***BUG*** Bundle response is null.";
     public static final String ERROR_MSG_UPDATE_ARGUMENT_MISSING = "Argument oldItemList cannot be null or empty.";
     public static final String ERROR_MSG_ARGUMENT_MISSING = "One or more arguments are missing.";
-
-    // ******************** BILLING TESTS ******************** //
-    static final String TEST_ORDER_ID = "GPA.1234-5678-9012-34567";
-    static final String TEST_PACKAGE_NAME = "jp.alessandro.android.iab";
-    static final String TEST_PRODUCT_ID = "android.test.purchased";
-    static final String TEST_PURCHASE_TIME = "1345678900000";
-    static final String TEST_DEVELOPER_PAYLOAD = "optional_developer_payload";
-    static final String TEST_PURCHASE_TOKEN = "opaque-token-up-to-1000-characters";
-    @SuppressWarnings("checkstyle:linelength")
-    static final String TEST_PUBLIC_KEY_BASE_64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7SEtV7WT1vJKdS1fBgskYk+c8j6YUa6kz8NwLbD7EkKGh+0ocSmsde4BewrQDijHC0z6Cxs3s8Kks2JC75NTZUvRQRN5T19Po2owTXTrkT5+Zh2nt5/0lj7RnMyB6qYMeVebDh4oUmj4YkLdQ3QjOpLjGep1xjIunOvJrpMiNkQuRl3ENBbkwEbDKzSquXXMngjfkx2PyHfirbE2dDVXkG85G542KSBfOHF1AQpEO7hiRgz8b5JTuSe4oOdYc11WG4bNxnLpcUeh8xwE9txcipDrz6cUFfb6D3lL8zPIzyZxiwIr0+G0O7ise+vIMaP0JOA891eqruBVEI7WPCyT0QIDAQAB";
-    static final String TEST_JSON_RECEIPT = "{" +
-            "\"orderId\":\"" + TEST_ORDER_ID + "\"," +
-            "\"packageName\":\"" + TEST_PACKAGE_NAME + "\"," +
-            "\"productId\":\"" + TEST_PRODUCT_ID + "_%d\"," +
-            "\"purchaseTime\":" + TEST_PURCHASE_TIME + "," +
-            "\"purchaseState\":0," +
-            "\"developerPayload\":\"" + TEST_DEVELOPER_PAYLOAD + "\"," +
-            "\"purchaseToken\":\"" + TEST_PURCHASE_TOKEN + "\"," +
-            "\"autoRenewing\":true}";
-
-    static final String TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE = "{" +
-            "\"orderId\":\"" + TEST_ORDER_ID + "\"," +
-            "\"packageName\":\"" + TEST_PACKAGE_NAME + "\"," +
-            "\"productId\":\"" + TEST_PRODUCT_ID + "_%d\"," +
-            "\"purchaseTime\":" + TEST_PURCHASE_TIME + "," +
-            "\"purchaseState\":0," +
-            "\"developerPayload\":\"" + TEST_DEVELOPER_PAYLOAD + "\"," +
-            "\"purchaseToken\":\"" + TEST_PURCHASE_TOKEN + "\"," +
-            "\"autoRenewing\":false}";
-
-    static final String TEST_JSON_RECEIPT_NO_TOKEN = "{" +
-            "\"orderId\":\"" + TEST_ORDER_ID + "\"," +
-            "\"packageName\":\"" + TEST_PACKAGE_NAME + "\"," +
-            "\"productId\":\"" + TEST_PRODUCT_ID + "_%d\"," +
-            "\"purchaseTime\":" + TEST_PURCHASE_TIME + "," +
-            "\"purchaseState\":0," +
-            "\"developerPayload\":\"" + TEST_DEVELOPER_PAYLOAD + "\"," +
-            "\"autoRenewing\":true}";
-
-    static final String TEST_JSON_BROKEN = "{\"productId\":\"\"";
-
-    static final String SKU_DETAIL_JSON = "{" +
-            "\"productId\": \"" + TEST_PRODUCT_ID + "_%d\"," +
-            "\"type\": \"subs\"," +
-            "\"price\": \"¥1080\"," +
-            "\"price_amount_micros\": \"10800000\"," +
-            "\"price_currency_code\": \"JPY\"," +
-            "\"title\": \"Test Product\"," +
-            "\"description\": \"Fast and easy use Android In-App Billing\"}";
-
-    static final String TYPE_IN_APP = "inapp";
-    static final String TYPE_SUBSCRIPTION = "subs";
 }

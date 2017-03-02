@@ -21,7 +21,7 @@ task jacocoTestReport(type: JacocoReport) {
 
     jacocoClasspath = project.configurations['androidJacocoAnt']
 
-    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*', '**/*_.*']
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*', '**/*_.*', 'com/android/vending/billing/*.*']
     def debugTree = fileTree(dir: "${project.buildDir}/intermediates/classes/debug", excludes: fileFilter)
     def mainSrc = ['${project.projectDir}/src/main/java']
 

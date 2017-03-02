@@ -19,13 +19,10 @@
 package jp.alessandro.android.iab;
 
 import android.app.Activity;
-import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
-
-import com.android.vending.billing.IInAppBillingService;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -38,7 +35,6 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
-import org.robolectric.shadows.ShadowApplication;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -47,6 +43,8 @@ import java.util.concurrent.TimeUnit;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.PurchasesHandler;
 import jp.alessandro.android.iab.response.PurchaseResponse;
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.ServiceStub;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -64,15 +62,11 @@ public class GetPurchasesTest {
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
     @Mock
-    IInAppBillingService mService;
-    @Mock
-    ServiceBinder mServiceBinder;
-    @Mock
     Activity mActivity;
 
-    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
-    private final ShadowApplication mShadowApplication = shadowOf(RuntimeEnvironment.application);
-    private final ComponentName mComponentName = mock(ComponentName.class);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
+    private final BillingContext mContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
+    private final ServiceStub mServiceStub = new ServiceStub();
 
     private Handler mWorkHandler;
     private BillingProcessor mProcessor;
@@ -114,7 +108,10 @@ public class GetPurchasesTest {
         Bundle responseBundle = new Bundle();
         responseBundle.putInt(Constants.RESPONSE_CODE, 0);
 
-        getPurchasesError(type, responseBundle, latch);
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
+
+        getPurchasesError(type, stubBundle, latch);
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -123,13 +120,12 @@ public class GetPurchasesTest {
     public void getPurchasesAndReleaseAndGetPurchasesAgain() throws InterruptedException, RemoteException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int size = 10;
-        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, size, null);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
 
-        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
-        mShadowApplication.setComponentNameAndServiceForBindService(mComponentName, stub);
+        mServiceStub.setServiceForBinding(stubBundle);
 
         mProcessor.getPurchases(PurchaseType.SUBSCRIPTION, new PurchasesHandler() {
             @Override
@@ -188,13 +184,12 @@ public class GetPurchasesTest {
     public void getPurchasesAndCancel() throws InterruptedException, RemoteException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int size = 10;
-        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, size, null);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
 
-        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
-        mShadowApplication.setComponentNameAndServiceForBindService(mComponentName, stub);
+        mServiceStub.setServiceForBinding(stubBundle);
 
         mProcessor.getPurchases(PurchaseType.SUBSCRIPTION, new PurchasesHandler() {
             @Override
@@ -217,7 +212,7 @@ public class GetPurchasesTest {
     public void bindServiceError() throws InterruptedException, RemoteException, BillingException {
         final CountDownLatch latch = new CountDownLatch(1);
 
-        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
+        BillingContext context = mDataConverter.newBillingContext(mock(Context.class));
         mProcessor = new BillingProcessor(context, new PurchaseHandler() {
             @Override
             public void call(PurchaseResponse response) {
@@ -248,8 +243,11 @@ public class GetPurchasesTest {
         final CountDownLatch latch = new CountDownLatch(1);
         final int size = 10;
 
-        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
-        setServiceStub(responseBundle);
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, size, null);
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
+
+        mServiceStub.setServiceForBinding(stubBundle);
 
         mProcessor.getPurchases(type, new PurchasesHandler() {
             @Override
@@ -267,7 +265,7 @@ public class GetPurchasesTest {
 
             @Override
             public void onError(BillingException e) {
-                throw new IllegalStateException();
+                throw new IllegalStateException(e);
             }
         });
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
@@ -279,7 +277,7 @@ public class GetPurchasesTest {
                                    final Bundle responseBundle,
                                    final CountDownLatch latch) {
 
-        setServiceStub(responseBundle);
+        mServiceStub.setServiceForBinding(responseBundle);
 
         mProcessor.getPurchases(type, new PurchasesHandler() {
             @Override
@@ -297,13 +295,5 @@ public class GetPurchasesTest {
             }
         });
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
-    }
-
-    private void setServiceStub(final Bundle responseBundle) {
-        Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
-
-        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
-        mShadowApplication.setComponentNameAndServiceForBindService(mComponentName, stub);
     }
 }

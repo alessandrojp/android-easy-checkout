@@ -20,13 +20,10 @@ package jp.alessandro.android.iab;
 
 import android.app.Activity;
 import android.app.PendingIntent;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
-
-import com.android.vending.billing.IInAppBillingService;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,20 +33,18 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
-import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
-import org.robolectric.shadows.ShadowApplication;
 
 import java.util.Locale;
 
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.response.PurchaseResponse;
 import jp.alessandro.android.iab.rxjava.BillingProcessorObservable;
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.ServiceStub;
 import rx.observers.TestSubscriber;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.robolectric.Shadows.shadowOf;
 
 
@@ -67,7 +62,9 @@ public class OnActivityResultTest {
     @Mock
     Activity mActivity;
 
-    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
+    private final BillingContext mContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
+    private final ServiceStub mServiceStub = new ServiceStub();
 
     private BillingProcessorObservable mProcessor;
     private Handler mWorkHandler;
@@ -96,17 +93,17 @@ public class OnActivityResultTest {
         int requestCode = 1001;
         int itemIndex = 0;
 
-        final String itemId = String.format(Locale.ENGLISH, "%s_%d", Constants.TEST_PRODUCT_ID, itemIndex);
+        final String itemId = String.format(Locale.ENGLISH, "%s_%d", DataConverter.TEST_PRODUCT_ID, itemIndex);
 
         setUpStartPurchase();
 
-        mProcessor = spy(new BillingProcessorObservable(mContext, new PurchaseHandler() {
+        mProcessor = new BillingProcessorObservable(mContext, new PurchaseHandler() {
             @Override
             public void call(PurchaseResponse response) {
                 assertThat(response.isSuccess()).isTrue();
                 assertThat(response.getPurchase().getSku()).isEqualTo(itemId);
             }
-        }));
+        });
 
         BillingProcessor billingProcessor = mProcessor.getBillingProcessor();
         mWorkHandler = billingProcessor.getWorkHandler();
@@ -117,28 +114,28 @@ public class OnActivityResultTest {
                 requestCode,
                 itemId,
                 type,
-                Constants.TEST_DEVELOPER_PAYLOAD)
+                DataConverter.TEST_DEVELOPER_PAYLOAD)
                 .subscribe(ts);
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         assertThat(ts.getOnNextEvents()).isEmpty();
         assertThat(ts.getOnErrorEvents()).isEmpty();
 
-        assertThat(mProcessor.onActivityResult(requestCode, -1, DataCreator.newOkIntent(itemIndex))).isTrue();
+        assertThat(mProcessor.onActivityResult(requestCode, -1, mDataConverter.newOkIntent(itemIndex))).isTrue();
     }
 
     private void startActivityError(PurchaseType type) throws InterruptedException, RemoteException {
         int requestCode = 1001;
         int itemIndex = 0;
-        String itemId = String.format(Locale.ENGLISH, "%s_%d", Constants.TEST_PRODUCT_ID, itemIndex);
+        String itemId = String.format(Locale.ENGLISH, "%s_%d", DataConverter.TEST_PRODUCT_ID, itemIndex);
         setUpStartPurchase();
 
-        mProcessor = spy(new BillingProcessorObservable(mContext, new PurchaseHandler() {
+        mProcessor = new BillingProcessorObservable(mContext, new PurchaseHandler() {
             @Override
             public void call(PurchaseResponse response) {
                 throw new IllegalStateException();
             }
-        }));
+        });
 
         BillingProcessor billingProcessor = mProcessor.getBillingProcessor();
         mWorkHandler = billingProcessor.getWorkHandler();
@@ -149,14 +146,14 @@ public class OnActivityResultTest {
                 requestCode,
                 itemId,
                 type,
-                Constants.TEST_DEVELOPER_PAYLOAD)
+                DataConverter.TEST_DEVELOPER_PAYLOAD)
                 .subscribe(ts);
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         assertThat(ts.getOnNextEvents()).isEmpty();
         assertThat(ts.getOnErrorEvents()).isEmpty();
 
-        assertThat(mProcessor.onActivityResult(1002, -1, DataCreator.newOkIntent(itemIndex))).isFalse();
+        assertThat(mProcessor.onActivityResult(1002, -1, mDataConverter.newOkIntent(itemIndex))).isFalse();
     }
 
     private void setUpStartPurchase() {
@@ -166,14 +163,7 @@ public class OnActivityResultTest {
         bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreator.GET_BUY_INTENT, bundle);
-        setServiceStub(stubBundle);
-    }
-
-    private void setServiceStub(final Bundle stubBundle) {
-        ShadowApplication shadowApplication = Shadows.shadowOf(RuntimeEnvironment.application);
-        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
-        ComponentName cn = mock(ComponentName.class);
-        shadowApplication.setComponentNameAndServiceForBindService(cn, stub);
+        stubBundle.putParcelable(ServiceStub.GET_BUY_INTENT, bundle);
+        mServiceStub.setServiceForBinding(stubBundle);
     }
 }

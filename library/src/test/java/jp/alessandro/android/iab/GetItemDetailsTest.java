@@ -19,13 +19,10 @@
 package jp.alessandro.android.iab;
 
 import android.app.Activity;
-import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
-
-import com.android.vending.billing.IInAppBillingService;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -38,7 +35,6 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
-import org.robolectric.shadows.ShadowApplication;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,10 +44,11 @@ import java.util.concurrent.TimeUnit;
 import jp.alessandro.android.iab.handler.ItemDetailsHandler;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.response.PurchaseResponse;
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.ServiceStub;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.robolectric.Shadows.shadowOf;
 
 /**
@@ -66,27 +63,23 @@ public class GetItemDetailsTest {
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
     @Mock
-    IInAppBillingService mService;
-    @Mock
-    ServiceBinder mServiceBinder;
-    @Mock
     Activity mActivity;
 
-    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
-    private final ShadowApplication mShadowApplication = shadowOf(RuntimeEnvironment.application);
-    private final ComponentName mComponentName = mock(ComponentName.class);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.KEY_FACTORY_ALGORITHM);
+    private final BillingContext mContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
+    private final ServiceStub mServiceStub = new ServiceStub();
 
     private Handler mWorkHandler;
     private BillingProcessor mProcessor;
 
     @Before
     public void setUp() {
-        mProcessor = spy(new BillingProcessor(mContext, new PurchaseHandler() {
+        mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
             @Override
             public void call(PurchaseResponse response) {
                 assertThat(response).isNotNull();
             }
-        }));
+        });
         mWorkHandler = mProcessor.getWorkHandler();
     }
 
@@ -184,7 +177,7 @@ public class GetItemDetailsTest {
     public void bindServiceError() throws InterruptedException, RemoteException, BillingException {
         final CountDownLatch latch = new CountDownLatch(1);
 
-        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
+        BillingContext context = mDataConverter.newBillingContext(mock(Context.class));
 
         ArrayList<String> itemIds = new ArrayList<>();
         itemIds.add("");
@@ -221,14 +214,17 @@ public class GetItemDetailsTest {
         final int size = 10;
 
         ArrayList<String> itemIds = new ArrayList<>();
-        itemIds.add(Constants.TEST_PRODUCT_ID);
+        itemIds.add(DataConverter.TEST_PRODUCT_ID);
 
-        ArrayList<String> items = DataCreator.createSkuItemDetailsJsonArray(size);
+        ArrayList<String> items = mDataConverter.convertToSkuItemDetailsJsonArrayList(size);
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
         responseBundle.putStringArrayList(Constants.RESPONSE_DETAILS_LIST, items);
 
-        setServiceStub(responseBundle);
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStub.GET_SKU_DETAILS, responseBundle);
+
+        mServiceStub.setServiceForBinding(stubBundle);
 
         mProcessor.getItemDetails(type, itemIds, new ItemDetailsHandler() {
             @Override
@@ -246,7 +242,7 @@ public class GetItemDetailsTest {
 
             @Override
             public void onError(BillingException e) {
-                throw new IllegalStateException();
+                throw new IllegalStateException(e);
             }
         });
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
@@ -264,7 +260,10 @@ public class GetItemDetailsTest {
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
 
-        setServiceStub(responseBundle);
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStub.GET_SKU_DETAILS, responseBundle);
+
+        mServiceStub.setServiceForBinding(stubBundle);
 
         mProcessor.getItemDetails(type, itemIds, new ItemDetailsHandler() {
             @Override
@@ -283,13 +282,5 @@ public class GetItemDetailsTest {
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(15, TimeUnit.SECONDS);
-    }
-
-    private void setServiceStub(final Bundle responseBundle) {
-        Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreator.GET_SKU_DETAILS, responseBundle);
-
-        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
-        mShadowApplication.setComponentNameAndServiceForBindService(mComponentName, stub);
     }
 }

@@ -19,7 +19,6 @@
 package jp.alessandro.android.iab;
 
 import android.app.Activity;
-import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
@@ -38,7 +37,6 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
-import org.robolectric.shadows.ShadowApplication;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -48,6 +46,8 @@ import jp.alessandro.android.iab.handler.InventoryHandler;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.PurchasesHandler;
 import jp.alessandro.android.iab.response.PurchaseResponse;
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.ServiceStub;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -73,9 +73,9 @@ public class GetInventoryTest {
     @Mock
     Activity mActivity;
 
-    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
-    private final ShadowApplication mShadowApplication = shadowOf(RuntimeEnvironment.application);
-    private final ComponentName mComponentName = mock(ComponentName.class);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
+    private final BillingContext mContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
+    private final ServiceStub mServiceStub = new ServiceStub();
 
     private Handler mWorkHandler;
     private BillingProcessor mProcessor;
@@ -115,13 +115,12 @@ public class GetInventoryTest {
     public void getInventoryAndReleaseAndGetInventoryAgain() throws InterruptedException, RemoteException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int size = 10;
-        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, size, null);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
 
-        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
-        mShadowApplication.setComponentNameAndServiceForBindService(mComponentName, stub);
+        mServiceStub.setServiceForBinding(stubBundle);
 
         mProcessor.getPurchases(PurchaseType.SUBSCRIPTION, new PurchasesHandler() {
             @Override
@@ -180,7 +179,7 @@ public class GetInventoryTest {
     public void bindServiceError() throws InterruptedException, RemoteException, BillingException {
         final CountDownLatch latch = new CountDownLatch(1);
 
-        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
+        BillingContext context = mDataConverter.newBillingContext(mock(Context.class));
 
         mProcessor = new BillingProcessor(context, new PurchaseHandler() {
             @Override
@@ -213,9 +212,11 @@ public class GetInventoryTest {
         final CountDownLatch latch = new CountDownLatch(1);
         final int size = 10;
 
-        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, size, null);
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
 
-        setServiceStub(responseBundle);
+        mServiceStub.setServiceForBinding(stubBundle);
 
         mProcessor.getInventory(type, new InventoryHandler() {
             @Override
@@ -233,7 +234,7 @@ public class GetInventoryTest {
 
             @Override
             public void onError(BillingException e) {
-                throw new IllegalStateException();
+                throw new IllegalStateException(e);
             }
         });
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
@@ -247,7 +248,10 @@ public class GetInventoryTest {
         Bundle responseBundle = new Bundle();
         responseBundle.putInt(Constants.RESPONSE_CODE, 0);
 
-        setServiceStub(responseBundle);
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
+
+        mServiceStub.setServiceForBinding(stubBundle);
 
         mProcessor.getInventory(type, new InventoryHandler() {
             @Override
@@ -267,13 +271,5 @@ public class GetInventoryTest {
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(15, TimeUnit.SECONDS);
-    }
-
-    private void setServiceStub(final Bundle responseBundle) {
-        Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
-
-        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
-        mShadowApplication.setComponentNameAndServiceForBindService(mComponentName, stub);
     }
 }

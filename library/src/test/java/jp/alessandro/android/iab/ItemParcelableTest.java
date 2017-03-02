@@ -28,6 +28,8 @@ import org.robolectric.annotation.Config;
 
 import java.util.Locale;
 
+import jp.alessandro.android.iab.util.DataConverter;
+
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
 /**
@@ -40,7 +42,7 @@ public class ItemParcelableTest {
 
     @Test
     public void writeToParcel() throws JSONException {
-        Item item = Item.parseJson(String.format(Locale.ENGLISH, Constants.SKU_DETAIL_JSON, 0));
+        Item item = Item.parseJson(String.format(Locale.ENGLISH, DataConverter.SKU_DETAIL_JSON, 0));
 
         // Obtain a Parcel object and write the parcelable object to it
         Parcel parcel = Parcel.obtain();

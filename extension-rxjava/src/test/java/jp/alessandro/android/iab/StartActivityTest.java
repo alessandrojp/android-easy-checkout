@@ -20,13 +20,10 @@ package jp.alessandro.android.iab;
 
 import android.app.Activity;
 import android.app.PendingIntent;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
-
-import com.android.vending.billing.IInAppBillingService;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -37,9 +34,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
-import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
-import org.robolectric.shadows.ShadowApplication;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,11 +42,11 @@ import java.util.List;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.response.PurchaseResponse;
 import jp.alessandro.android.iab.rxjava.BillingProcessorObservable;
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.ServiceStub;
 import rx.observers.TestSubscriber;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.robolectric.Shadows.shadowOf;
 
 
@@ -69,19 +64,21 @@ public class StartActivityTest {
     @Mock
     Activity mActivity;
 
-    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
+    private final BillingContext mContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
+    private final ServiceStub mServiceStub = new ServiceStub();
 
     private BillingProcessorObservable mProcessor;
     private Handler mWorkHandler;
 
     @Before
     public void setUp() {
-        mProcessor = spy(new BillingProcessorObservable(mContext, new PurchaseHandler() {
+        mProcessor = new BillingProcessorObservable(mContext, new PurchaseHandler() {
             @Override
             public void call(PurchaseResponse response) {
 
             }
-        }));
+        });
         BillingProcessor billingProcessor = mProcessor.getBillingProcessor();
         mWorkHandler = billingProcessor.getWorkHandler();
     }
@@ -112,15 +109,15 @@ public class StartActivityTest {
         setUpStartUpdatePurchase();
 
         List<String> itemIds = new ArrayList<>();
-        itemIds.add(Constants.TEST_PRODUCT_ID);
+        itemIds.add(DataConverter.TEST_PRODUCT_ID);
 
         TestSubscriber<Purchases> ts = new TestSubscriber<>();
         mProcessor.updateSubscription(
                 mActivity,
                 requestCode,
                 itemIds,
-                Constants.TEST_PRODUCT_ID,
-                Constants.TEST_DEVELOPER_PAYLOAD)
+                DataConverter.TEST_PRODUCT_ID,
+                DataConverter.TEST_DEVELOPER_PAYLOAD)
                 .subscribe(ts);
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
@@ -133,18 +130,19 @@ public class StartActivityTest {
         int requestCode = 1001;
 
         Bundle stubBundle = new Bundle();
-        setServiceStub(stubBundle);
+
+        mServiceStub.setServiceForBinding(stubBundle);
 
         List<String> itemIds = new ArrayList<>();
-        itemIds.add(Constants.TEST_PRODUCT_ID);
+        itemIds.add(DataConverter.TEST_PRODUCT_ID);
 
         TestSubscriber<Purchases> ts = new TestSubscriber<>();
         mProcessor.updateSubscription(
                 mActivity,
                 requestCode,
                 itemIds,
-                Constants.TEST_PRODUCT_ID,
-                Constants.TEST_DEVELOPER_PAYLOAD)
+                DataConverter.TEST_PRODUCT_ID,
+                DataConverter.TEST_DEVELOPER_PAYLOAD)
                 .subscribe(ts);
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
@@ -163,9 +161,9 @@ public class StartActivityTest {
         mProcessor.startPurchase(
                 mActivity,
                 requestCode,
-                Constants.TEST_PRODUCT_ID,
+                DataConverter.TEST_PRODUCT_ID,
                 type,
-                Constants.TEST_DEVELOPER_PAYLOAD)
+                DataConverter.TEST_DEVELOPER_PAYLOAD)
                 .subscribe(ts);
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
@@ -177,15 +175,15 @@ public class StartActivityTest {
         int requestCode = 1001;
         Bundle stubBundle = new Bundle();
 
-        setServiceStub(stubBundle);
+        mServiceStub.setServiceForBinding(stubBundle);
 
         TestSubscriber<Purchases> ts = new TestSubscriber<>();
         mProcessor.startPurchase(
                 mActivity,
                 requestCode,
-                Constants.TEST_PRODUCT_ID,
+                DataConverter.TEST_PRODUCT_ID,
                 type,
-                Constants.TEST_DEVELOPER_PAYLOAD)
+                DataConverter.TEST_DEVELOPER_PAYLOAD)
                 .subscribe(ts);
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
@@ -203,8 +201,9 @@ public class StartActivityTest {
         bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreator.GET_BUY_INTENT, bundle);
-        setServiceStub(stubBundle);
+        stubBundle.putParcelable(ServiceStub.GET_BUY_INTENT, bundle);
+
+        mServiceStub.setServiceForBinding(stubBundle);
     }
 
     private void setUpStartUpdatePurchase() {
@@ -214,14 +213,8 @@ public class StartActivityTest {
         bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreator.GET_BUY_INTENT_TO_REPLACE_SKUS, bundle);
-        setServiceStub(stubBundle);
-    }
+        stubBundle.putParcelable(ServiceStub.GET_BUY_INTENT_TO_REPLACE_SKUS, bundle);
 
-    private void setServiceStub(final Bundle stubBundle) {
-        ShadowApplication shadowApplication = Shadows.shadowOf(RuntimeEnvironment.application);
-        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
-        ComponentName cn = mock(ComponentName.class);
-        shadowApplication.setComponentNameAndServiceForBindService(cn, stub);
+        mServiceStub.setServiceForBinding(stubBundle);
     }
 }

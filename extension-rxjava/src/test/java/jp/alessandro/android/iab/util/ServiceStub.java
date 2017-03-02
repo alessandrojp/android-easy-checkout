@@ -16,32 +16,47 @@
  *  Contact email: alessandro@alessandro.jp
  */
 
-package jp.alessandro.android.iab;
+package jp.alessandro.android.iab.util;
 
+import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.RemoteException;
 
 import com.android.vending.billing.IInAppBillingService;
 
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.shadows.ShadowApplication;
+
 import java.util.List;
+
+import static org.mockito.Mockito.mock;
+import static org.robolectric.Shadows.shadowOf;
 
 /**
  * Created by Alessandro Yuichi Okimoto on 2017/02/26.
  */
 
-public class ServiceStubCreator {
+public class ServiceStub {
 
-    static final String CONSUME_PURCHASE = "consume_purchase";
-    static final String GET_BUY_INTENT = "get_buy_intent";
-    static final String GET_BUY_INTENT_TO_REPLACE_SKUS = "get_buy_intent_to_replace_skus";
-    static final String GET_PURCHASES = "get_purchases";
-    static final String GET_SKU_DETAILS = "get_sku_details";
-    static final String IN_APP_BILLING_SUPPORTED = "is_billing_supported";
-    static final String THROW_REMOTE_EXCEPTION_ON_GET_ACTIONS = "throw_remote_exception_on_get_actions";
-    static final String THROW_REMOTE_EXCEPTION_ON_BILLING_SUPPORTED = "throw_remote_exception_on_billing_supported";
+    public static final String CONSUME_PURCHASE = "consume_purchase";
+    public static final String GET_BUY_INTENT = "get_buy_intent";
+    public static final String GET_BUY_INTENT_TO_REPLACE_SKUS = "get_buy_intent_to_replace_skus";
+    public static final String GET_PURCHASES = "get_purchases";
+    public static final String GET_SKU_DETAILS = "get_sku_details";
+    public static final String IN_APP_BILLING_SUPPORTED = "is_billing_supported";
+    public static final String THROW_REMOTE_EXCEPTION_ON_GET_ACTIONS = "throw_remote_exception_on_get_actions";
+    public static final String THROW_REMOTE_EXCEPTION_ON_CONSUME_PURCHASE = "throw_remote_exception_on_consume_purchase";
+    public static final String THROW_REMOTE_EXCEPTION_ON_BILLING_SUPPORTED = "throw_remote_exception_on_billing_supported";
+
+    public void setServiceForBinding(final Bundle stubBundle) {
+        ShadowApplication shadowApplication = shadowOf(RuntimeEnvironment.application);
+        IInAppBillingService.Stub stub = create(stubBundle);
+        ComponentName cn = mock(ComponentName.class);
+        shadowApplication.setComponentNameAndServiceForBindService(cn, stub);
+    }
 
     @SuppressWarnings("checkstyle:methodlength")
-    IInAppBillingService.Stub create(final Bundle bundle) {
+    public IInAppBillingService.Stub create(final Bundle bundle) {
         return new IInAppBillingService.Stub() {
             @Override
             public int isBillingSupported(int apiVersion,
@@ -96,7 +111,7 @@ public class ServiceStubCreator {
                                        String packageName,
                                        String purchaseToken) throws RemoteException {
 
-                if (bundle.getBoolean(THROW_REMOTE_EXCEPTION_ON_GET_ACTIONS, false)) {
+                if (bundle.getBoolean(THROW_REMOTE_EXCEPTION_ON_CONSUME_PURCHASE, false)) {
                     throw new RemoteException();
                 }
                 return bundle.getInt(CONSUME_PURCHASE, 0);

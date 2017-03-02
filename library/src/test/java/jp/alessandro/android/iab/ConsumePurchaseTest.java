@@ -18,13 +18,10 @@
 
 package jp.alessandro.android.iab;
 
-import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
-
-import com.android.vending.billing.IInAppBillingService;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -34,9 +31,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
-import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
-import org.robolectric.shadows.ShadowApplication;
 
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
@@ -45,10 +40,13 @@ import java.util.concurrent.TimeUnit;
 import jp.alessandro.android.iab.handler.ConsumeItemHandler;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.response.PurchaseResponse;
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.ServiceStub;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.robolectric.Shadows.shadowOf;
 
 /**
  * Created by Alessandro Yuichi Okimoto on 2017/02/19.
@@ -61,7 +59,9 @@ public class ConsumePurchaseTest {
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
-    private final BillingContext mContext = DataCreator.newBillingContext(spy(RuntimeEnvironment.application));
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
+    private final BillingContext mContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
+    private final ServiceStub mServiceStub = new ServiceStub();
     private final PurchaseHandler mPurchaseHandler = new PurchaseHandler() {
         @Override
         public void call(PurchaseResponse response) {
@@ -83,14 +83,14 @@ public class ConsumePurchaseTest {
         final CountDownLatch latch = new CountDownLatch(1);
         final int responseCode = 0;
 
-        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
-        stubBundle.putInt(ServiceStubCreator.CONSUME_PURCHASE, responseCode);
-        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
+        stubBundle.putInt(ServiceStub.CONSUME_PURCHASE, responseCode);
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
 
-        setServiceStub(stubBundle);
+        mServiceStub.setServiceForBinding(stubBundle);
 
-        String itemId = String.format(Locale.US, "%s_%d", Constants.TEST_PRODUCT_ID, 0);
+        String itemId = String.format(Locale.US, "%s_%d", DataConverter.TEST_PRODUCT_ID, 0);
         mProcessor.consume(itemId, new ConsumeItemHandler() {
             @Override
             public void onSuccess() {
@@ -102,7 +102,7 @@ public class ConsumePurchaseTest {
                 throw new IllegalStateException();
             }
         });
-        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+        shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -114,14 +114,14 @@ public class ConsumePurchaseTest {
 
         int size = 10;
 
-        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, size, null);
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, size, null);
         Bundle stubBundle = new Bundle();
-        stubBundle.putInt(ServiceStubCreator.CONSUME_PURCHASE, responseCode);
-        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
+        stubBundle.putInt(ServiceStub.CONSUME_PURCHASE, responseCode);
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
 
-        setServiceStub(stubBundle);
+        mServiceStub.setServiceForBinding(stubBundle);
 
-        String itemId = String.format(Locale.US, "%s_%d", Constants.TEST_PRODUCT_ID, 0);
+        String itemId = String.format(Locale.US, "%s_%d", DataConverter.TEST_PRODUCT_ID, 0);
         mProcessor.consume(itemId, new ConsumeItemHandler() {
             @Override
             public void onSuccess() {
@@ -135,7 +135,7 @@ public class ConsumePurchaseTest {
                 latch.countDown();
             }
         });
-        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+        shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -146,11 +146,11 @@ public class ConsumePurchaseTest {
         final int responseCode = 3;
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putInt(ServiceStubCreator.CONSUME_PURCHASE, responseCode);
+        stubBundle.putInt(ServiceStub.CONSUME_PURCHASE, responseCode);
 
-        setServiceStub(stubBundle);
+        mServiceStub.setServiceForBinding(stubBundle);
 
-        mProcessor.consume(Constants.TEST_PRODUCT_ID, new ConsumeItemHandler() {
+        mProcessor.consume(DataConverter.TEST_PRODUCT_ID, new ConsumeItemHandler() {
             @Override
             public void onSuccess() {
                 throw new IllegalStateException();
@@ -163,7 +163,7 @@ public class ConsumePurchaseTest {
                 latch.countDown();
             }
         });
-        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+        shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -172,13 +172,13 @@ public class ConsumePurchaseTest {
     public void consumePurchaseNotFound() throws InterruptedException, RemoteException, BillingException {
         final CountDownLatch latch = new CountDownLatch(1);
 
-        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
 
-        setServiceStub(stubBundle);
+        mServiceStub.setServiceForBinding(stubBundle);
 
-        mProcessor.consume(Constants.TEST_PRODUCT_ID, new ConsumeItemHandler() {
+        mProcessor.consume(DataConverter.TEST_PRODUCT_ID, new ConsumeItemHandler() {
             @Override
             public void onSuccess() {
                 throw new IllegalStateException();
@@ -191,7 +191,7 @@ public class ConsumePurchaseTest {
                 latch.countDown();
             }
         });
-        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+        shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -200,13 +200,13 @@ public class ConsumePurchaseTest {
     public void consumePurchaseTokenNull() throws InterruptedException, RemoteException, BillingException {
         final CountDownLatch latch = new CountDownLatch(1);
 
-        Bundle responseBundle = DataCreator.createPurchaseWithNoTokenBundle(0, 0, 10, null);
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseWithNoTokenBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
-        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
 
-        setServiceStub(stubBundle);
+        mServiceStub.setServiceForBinding(stubBundle);
 
-        mProcessor.consume(String.format(Locale.US, "%s_%d", Constants.TEST_PRODUCT_ID, 0), new ConsumeItemHandler() {
+        mProcessor.consume(String.format(Locale.US, "%s_%d", DataConverter.TEST_PRODUCT_ID, 0), new ConsumeItemHandler() {
             @Override
             public void onSuccess() {
                 throw new IllegalStateException();
@@ -219,7 +219,7 @@ public class ConsumePurchaseTest {
                 latch.countDown();
             }
         });
-        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+        shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -227,7 +227,7 @@ public class ConsumePurchaseTest {
     @Test
     public void consumePurchaseWithHandlerNull() {
         try {
-            mProcessor.consume(Constants.TEST_PRODUCT_ID, null);
+            mProcessor.consume(DataConverter.TEST_PRODUCT_ID, null);
         } catch (IllegalArgumentException e) {
             assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_ARGUMENT_MISSING);
         }
@@ -256,14 +256,14 @@ public class ConsumePurchaseTest {
     public void remoteException() throws InterruptedException, RemoteException, BillingException {
         final CountDownLatch latch = new CountDownLatch(1);
 
-        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
-        stubBundle.putBoolean(ServiceStubCreator.THROW_REMOTE_EXCEPTION_ON_CONSUME_PURCHASE, true);
-        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
+        stubBundle.putBoolean(ServiceStub.THROW_REMOTE_EXCEPTION_ON_CONSUME_PURCHASE, true);
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
 
-        setServiceStub(stubBundle);
+        mServiceStub.setServiceForBinding(stubBundle);
 
-        mProcessor.consume(String.format(Locale.US, "%s_%d", Constants.TEST_PRODUCT_ID, 0), new ConsumeItemHandler() {
+        mProcessor.consume(String.format(Locale.US, "%s_%d", DataConverter.TEST_PRODUCT_ID, 0), new ConsumeItemHandler() {
             @Override
             public void onSuccess() {
                 throw new IllegalStateException();
@@ -275,7 +275,7 @@ public class ConsumePurchaseTest {
                 latch.countDown();
             }
         });
-        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+        shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -284,11 +284,11 @@ public class ConsumePurchaseTest {
     public void bindServiceError() throws InterruptedException, RemoteException, BillingException {
         final CountDownLatch latch = new CountDownLatch(1);
 
-        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
+        BillingContext context = mDataConverter.newBillingContext(mock(Context.class));
         mProcessor = spy(new BillingProcessor(context, mPurchaseHandler));
         mWorkHandler = mProcessor.getWorkHandler();
 
-        mProcessor.consume(Constants.TEST_PRODUCT_ID, new ConsumeItemHandler() {
+        mProcessor.consume(DataConverter.TEST_PRODUCT_ID, new ConsumeItemHandler() {
             @Override
             public void onSuccess() {
                 throw new IllegalStateException();
@@ -301,7 +301,7 @@ public class ConsumePurchaseTest {
                 latch.countDown();
             }
         });
-        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+        shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -311,11 +311,11 @@ public class ConsumePurchaseTest {
         final CountDownLatch latch = new CountDownLatch(1);
 
         Bundle stubBundle = new Bundle();
-        stubBundle.putInt(ServiceStubCreator.IN_APP_BILLING_SUPPORTED, 1);
+        stubBundle.putInt(ServiceStub.IN_APP_BILLING_SUPPORTED, 1);
 
-        setServiceStub(stubBundle);
+        mServiceStub.setServiceForBinding(stubBundle);
 
-        mProcessor.consume(Constants.TEST_PRODUCT_ID, new ConsumeItemHandler() {
+        mProcessor.consume(DataConverter.TEST_PRODUCT_ID, new ConsumeItemHandler() {
             @Override
             public void onSuccess() {
                 throw new IllegalStateException();
@@ -328,15 +328,8 @@ public class ConsumePurchaseTest {
                 latch.countDown();
             }
         });
-        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+        shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(15, TimeUnit.SECONDS);
-    }
-
-    private void setServiceStub(final Bundle stubBundle) {
-        ShadowApplication shadowApplication = Shadows.shadowOf(RuntimeEnvironment.application);
-        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
-        ComponentName cn = mock(ComponentName.class);
-        shadowApplication.setComponentNameAndServiceForBindService(cn, stub);
     }
 }

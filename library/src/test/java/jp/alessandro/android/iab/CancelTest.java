@@ -19,24 +19,21 @@
 package jp.alessandro.android.iab;
 
 import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
-
-import com.android.vending.billing.IInAppBillingService;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
-import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
@@ -47,12 +44,11 @@ import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.PurchasesHandler;
 import jp.alessandro.android.iab.handler.StartActivityHandler;
 import jp.alessandro.android.iab.response.PurchaseResponse;
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.ServiceStub;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
+import static org.robolectric.Shadows.shadowOf;
 
 /**
  * Created by Alessandro Yuichi Okimoto on 2017/02/19.
@@ -66,46 +62,96 @@ public class CancelTest {
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
     @Mock
-    IInAppBillingService mService;
-    @Mock
-    ServiceBinder mServiceBinder;
-    @Mock
     Activity mActivity;
 
-    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
+    private final BillingContext mContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
+    private final ServiceStub mServiceStub = new ServiceStub();
 
     private BillingProcessor mProcessor;
     private Handler mWorkHandler;
 
     @Before
     public void setUp() throws RemoteException {
-        mProcessor = spy(new BillingProcessor(mContext, new PurchaseHandler() {
+        mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
             @Override
             public void call(PurchaseResponse response) {
                 assertThat(response).isNotNull();
             }
-        }));
+        });
         mWorkHandler = mProcessor.getWorkHandler();
+    }
 
-        doReturn(true).when(mProcessor).isSupported(PurchaseType.IN_APP, mService);
-        doReturn(mServiceBinder).when(mProcessor).createServiceBinder();
-        doAnswer(new Answer() {
+    @Test
+    public void cancelPattern1() {
+        mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
             @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                ServiceBinder.Handler handler = invocation.getArgument(0);
-                handler.onBind(mService);
-                return null;
+            public void call(PurchaseResponse response) {
+                assertThat(response).isNotNull();
             }
-        }).when(mServiceBinder).getServiceAsync(any(ServiceBinder.Handler.class));
+        });
+        mProcessor.cancel();
+        mProcessor.getWorkHandler();
+        mProcessor.cancel();
+        mProcessor.getMainHandler();
+        mProcessor.release();
+        mProcessor.cancel();
+    }
+
+    @Test
+    public void cancelPattern2() {
+        mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                assertThat(response).isNotNull();
+            }
+        });
+        mProcessor.cancel();
+        mProcessor.getMainHandler();
+        mProcessor.cancel();
+        mProcessor.getWorkHandler();
+        mProcessor.release();
+        mProcessor.cancel();
+    }
+
+    @Test
+    public void cancelPattern3() {
+        mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                assertThat(response).isNotNull();
+            }
+        });
+        mProcessor.cancel();
+        mProcessor.getMainHandler();
+        mProcessor.getWorkHandler();
+        mProcessor.cancel();
+        mProcessor.release();
+        mProcessor.cancel();
+    }
+
+    @Test
+    public void cancelPattern4() {
+        mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                assertThat(response).isNotNull();
+            }
+        });
+        mProcessor.release();
+        mProcessor.cancel();
     }
 
     @Test
     public void getPurchasesAndCancel() throws InterruptedException, RemoteException {
-        CountDownLatch latch = new CountDownLatch(1);
-        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
+        final CountDownLatch latch = new CountDownLatch(1);
 
-        doReturn(responseBundle).when(mService).getPurchases(
-                mContext.getApiVersion(), mContext.getContext().getPackageName(), Constants.ITEM_TYPE_INAPP, null);
+        int size = 10;
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, size, null);
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
+
+        mServiceStub.setServiceForBinding(stubBundle);
 
         getPurchasesAndCancel(latch, new AtomicInteger(10));
         latch.await(15, TimeUnit.SECONDS);
@@ -116,27 +162,34 @@ public class CancelTest {
         final CountDownLatch latch = new CountDownLatch(1);
         int requestCode = 1001;
 
-        mProcessor.startPurchase(mActivity, requestCode, Constants.TEST_PRODUCT_ID, PurchaseType.IN_APP, Constants.TEST_DEVELOPER_PAYLOAD,
+        PendingIntent pendingIntent = PendingIntent.getActivity(mContext.getContext(), 1, new Intent(), 0);
+        Bundle bundle = new Bundle();
+        bundle.putLong(Constants.RESPONSE_CODE, 0L);
+        bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
+
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStub.GET_BUY_INTENT, bundle);
+        mServiceStub.setServiceForBinding(stubBundle);
+
+        mProcessor.startPurchase(mActivity, requestCode, DataConverter.TEST_PRODUCT_ID, PurchaseType.IN_APP, DataConverter.TEST_DEVELOPER_PAYLOAD,
                 new StartActivityHandler() {
                     @Override
                     public void onSuccess() {
-                        throw new IllegalStateException();
+                        mProcessor.cancel();
+                        latch.countDown();
                     }
 
                     @Override
                     public void onError(BillingException e) {
-                        assertThat(e.getErrorCode()).isEqualTo(Constants.ERROR_UNEXPECTED_TYPE);
-                        assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE_NULL);
-                        mProcessor.cancel();
-                        latch.countDown();
+                        throw new IllegalStateException(e);
                     }
                 });
-        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+        shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
         latch.await(15, TimeUnit.SECONDS);
     }
 
     @Test
-    public void cancelButAlreadyReleased() throws InterruptedException, RemoteException {
+    public void releaseFirstBeforeCancel() throws InterruptedException, RemoteException {
         mProcessor.release();
         mProcessor.cancel();
         try {
@@ -147,13 +200,15 @@ public class CancelTest {
     }
 
     @Test
-    public void cancelFirstBeforeDoSomething() throws InterruptedException, RemoteException {
+    public void cancelFirstBeforeGetPurchases() throws InterruptedException, RemoteException {
         final CountDownLatch latch = new CountDownLatch(1);
 
-        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
+        int size = 10;
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, size, null);
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
 
-        doReturn(responseBundle).when(mService).getPurchases(
-                mContext.getApiVersion(), mContext.getContext().getPackageName(), Constants.ITEM_TYPE_INAPP, null);
+        mServiceStub.setServiceForBinding(stubBundle);
 
         mProcessor.cancel();
         mProcessor.getPurchases(PurchaseType.IN_APP, new PurchasesHandler() {
@@ -169,7 +224,7 @@ public class CancelTest {
                 throw new IllegalStateException(e);
             }
         });
-        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+        shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
     }
 
     private void getPurchasesAndCancel(final CountDownLatch latch, final AtomicInteger times) throws InterruptedException {
@@ -194,6 +249,6 @@ public class CancelTest {
                 throw new IllegalStateException(e);
             }
         });
-        Shadows.shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
+        shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
     }
 }

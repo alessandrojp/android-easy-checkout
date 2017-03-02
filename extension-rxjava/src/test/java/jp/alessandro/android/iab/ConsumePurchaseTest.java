@@ -18,12 +18,9 @@
 
 package jp.alessandro.android.iab;
 
-import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
-
-import com.android.vending.billing.IInAppBillingService;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -33,20 +30,18 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
-import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
-import org.robolectric.shadows.ShadowApplication;
 
 import java.util.Locale;
 
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.response.PurchaseResponse;
 import jp.alessandro.android.iab.rxjava.BillingProcessorObservable;
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.ServiceStub;
 import rx.observers.TestSubscriber;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.robolectric.Shadows.shadowOf;
 
 
@@ -61,19 +56,21 @@ public class ConsumePurchaseTest {
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
-    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
+    private final BillingContext mContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
+    private final ServiceStub mServiceStub = new ServiceStub();
 
     private BillingProcessorObservable mProcessor;
     private Handler mWorkHandler;
 
     @Before
     public void setUp() {
-        mProcessor = spy(new BillingProcessorObservable(mContext, new PurchaseHandler() {
+        mProcessor = new BillingProcessorObservable(mContext, new PurchaseHandler() {
             @Override
             public void call(PurchaseResponse response) {
 
             }
-        }));
+        });
         BillingProcessor billingProcessor = mProcessor.getBillingProcessor();
         mWorkHandler = billingProcessor.getWorkHandler();
     }
@@ -81,14 +78,14 @@ public class ConsumePurchaseTest {
     @Test
     public void consumePurchase() throws InterruptedException, RemoteException {
         int responseCode = 0;
-        Bundle responseBundle = DataCreator.createPurchaseBundle(0, 0, 10, null);
+        Bundle responseBundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, 10, null);
         Bundle stubBundle = new Bundle();
-        stubBundle.putInt(ServiceStubCreator.CONSUME_PURCHASE, responseCode);
-        stubBundle.putParcelable(ServiceStubCreator.GET_PURCHASES, responseBundle);
+        stubBundle.putInt(ServiceStub.CONSUME_PURCHASE, responseCode);
+        stubBundle.putParcelable(ServiceStub.GET_PURCHASES, responseBundle);
 
-        setServiceStub(stubBundle);
+        mServiceStub.setServiceForBinding(stubBundle);
 
-        String itemId = String.format(Locale.US, "%s_%d", Constants.TEST_PRODUCT_ID, 0);
+        String itemId = String.format(Locale.US, "%s_%d", DataConverter.TEST_PRODUCT_ID, 0);
         TestSubscriber<Void> ts = new TestSubscriber<>();
 
         mProcessor.consume(itemId).subscribe(ts);
@@ -102,11 +99,11 @@ public class ConsumePurchaseTest {
     public void consumePurchaseError() {
         Bundle stubBundle = new Bundle();
 
-        setServiceStub(stubBundle);
+        mServiceStub.setServiceForBinding(stubBundle);
 
         TestSubscriber<Void> ts = new TestSubscriber<>();
 
-        mProcessor.consume(Constants.TEST_PRODUCT_ID).subscribe(ts);
+        mProcessor.consume(DataConverter.TEST_PRODUCT_ID).subscribe(ts);
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         assertThat(ts.getOnNextEvents()).isEmpty();
@@ -114,12 +111,5 @@ public class ConsumePurchaseTest {
         BillingException e = (BillingException) ts.getOnErrorEvents().get(0);
         assertThat(e.getErrorCode()).isEqualTo(Constants.ERROR_UNEXPECTED_TYPE);
         assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_UNEXPECTED_BUNDLE_RESPONSE_NULL);
-    }
-
-    private void setServiceStub(final Bundle stubBundle) {
-        ShadowApplication shadowApplication = Shadows.shadowOf(RuntimeEnvironment.application);
-        IInAppBillingService.Stub stub = new ServiceStubCreator().create(stubBundle);
-        ComponentName cn = mock(ComponentName.class);
-        shadowApplication.setComponentNameAndServiceForBindService(cn, stub);
     }
 }

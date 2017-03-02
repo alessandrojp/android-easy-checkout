@@ -37,6 +37,8 @@ import org.robolectric.annotation.Config;
 import java.util.ArrayList;
 import java.util.List;
 
+import jp.alessandro.android.iab.util.DataConverter;
+
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -59,7 +61,8 @@ public class ItemGetterTest {
     @Mock
     IInAppBillingService mService;
 
-    private final BillingContext mBillingContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.KEY_FACTORY_ALGORITHM);
+    private final BillingContext mBillingContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
 
     private ItemGetter mGetter;
 
@@ -71,7 +74,7 @@ public class ItemGetterTest {
     @Test
     public void remoteException() throws RemoteException {
         int size = 10;
-        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+        ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
 
         when(mService.getSkuDetails(
                 anyInt(),
@@ -99,8 +102,8 @@ public class ItemGetterTest {
     @Test
     public void get20ItemDetails() throws RemoteException, BillingException {
         int size = 20;
-        ArrayList<String> itemIds = DataCreator.createItemIds(size);
-        ArrayList<String> items = DataCreator.createSkuItemDetailsJsonArray(size);
+        ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
+        ArrayList<String> items = mDataConverter.convertToSkuItemDetailsJsonArrayList(size);
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
         responseBundle.putStringArrayList(Constants.RESPONSE_DETAILS_LIST, items);
@@ -137,8 +140,8 @@ public class ItemGetterTest {
     @SuppressWarnings("checkstyle:methodlength")
     public void get70ItemDetails() throws RemoteException, BillingException {
         int size = 70;
-        ArrayList<String> itemIds = DataCreator.createItemIds(size);
-        ArrayList<String> items = DataCreator.createSkuItemDetailsJsonArray(size);
+        ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
+        ArrayList<String> items = mDataConverter.convertToSkuItemDetailsJsonArrayList(size);
         List<Bundle> splitBundleList = new ArrayList<>();
 
         for (int i = 0; i < itemIds.size(); i += ItemGetter.MAX_SKU_PER_REQUEST) {
@@ -183,8 +186,8 @@ public class ItemGetterTest {
     @Test
     public void getItemDetailsJsonBroken() throws RemoteException, BillingException {
         int size = 10;
-        ArrayList<String> itemIds = DataCreator.createItemIds(size);
-        ArrayList<String> items = DataCreator.createSkuDetailsJsonBrokenArray();
+        ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
+        ArrayList<String> items = mDataConverter.convertToSkuDetailsJsonBrokenArrayList();
 
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
@@ -201,7 +204,7 @@ public class ItemGetterTest {
     @Test
     public void getItemDetailsWithEmptyArray() throws RemoteException {
         int size = 10;
-        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+        ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
 
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
@@ -217,7 +220,7 @@ public class ItemGetterTest {
     @Test
     public void getItemDetailsWithArrayNull() throws RemoteException {
         int size = 10;
-        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+        ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
 
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
@@ -233,7 +236,7 @@ public class ItemGetterTest {
     @Test
     public void getWithLongResponseCode() throws RemoteException {
         int size = 10;
-        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+        ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
 
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
@@ -249,7 +252,7 @@ public class ItemGetterTest {
     @Test
     public void getWithDifferentResponseCode() throws RemoteException {
         int size = 10;
-        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+        ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
 
         Bundle responseBundle = new Bundle();
         responseBundle.putInt(Constants.RESPONSE_CODE, 3);
@@ -265,7 +268,7 @@ public class ItemGetterTest {
     @Test
     public void getWithIntegerResponseCode() throws RemoteException {
         int size = 10;
-        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+        ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
 
         Bundle responseBundle = new Bundle();
         responseBundle.putInt(Constants.RESPONSE_CODE, 0);
@@ -281,7 +284,7 @@ public class ItemGetterTest {
     @Test
     public void getWithNoResponseCode() throws RemoteException {
         int size = 10;
-        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+        ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
 
         Bundle responseBundle = new Bundle();
 
@@ -296,7 +299,7 @@ public class ItemGetterTest {
     @Test
     public void stringResponseCode() throws InterruptedException, RemoteException {
         int size = 10;
-        ArrayList<String> itemIds = DataCreator.createItemIds(size);
+        ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
 
         Bundle responseBundle = new Bundle();
         responseBundle.putString(Constants.RESPONSE_CODE, "0");

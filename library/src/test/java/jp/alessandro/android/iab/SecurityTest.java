@@ -38,6 +38,8 @@ import java.util.List;
 
 import jp.alessandro.android.iab.logger.DiscardLogger;
 import jp.alessandro.android.iab.logger.Logger;
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.DataSigner;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -58,6 +60,8 @@ public class SecurityTest {
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
+    private final DataSigner mDataSigner = new DataSigner();
+
     private List<Security> mSecurities;
 
     @Before
@@ -66,12 +70,13 @@ public class SecurityTest {
         mSecurities.add(spy(new Security(false)));
         mSecurities.add(spy(new Security(true)));
     }
+
     @Test
     public void verifyPurchaseSuccess() {
         Logger logger = new DiscardLogger();
-        String base64PublicKey = Constants.TEST_PUBLIC_KEY_BASE_64;
-        String signedData = Constants.TEST_JSON_RECEIPT;
-        String signature = DataSigner.sign(signedData);
+        String base64PublicKey = DataConverter.TEST_PUBLIC_KEY_BASE_64;
+        String signedData = DataConverter.TEST_JSON_RECEIPT;
+        String signature = mDataSigner.sign(signedData, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
 
         for (Security s : mSecurities) {
             assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isTrue();
@@ -81,36 +86,10 @@ public class SecurityTest {
     @Test
     public void verifyPurchaseFailed() {
         Logger logger = new DiscardLogger();
-        String base64PublicKey = Constants.TEST_PUBLIC_KEY_BASE_64;
-        String signedData = Constants.TEST_JSON_RECEIPT;
-        String signedDifferentData = Constants.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE;
-        String signature = DataSigner.sign(signedDifferentData);
-
-        for (Security s : mSecurities) {
-            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        }
-    }
-
-    @Test
-    public void verifyPurchaseDebugTrue() {
-        Logger logger = new DiscardLogger();
-        String base64PublicKey = Constants.TEST_PUBLIC_KEY_BASE_64;
-        String signedData = Constants.TEST_JSON_RECEIPT;
-        String signedDifferentData = Constants.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE;
-        String signature = DataSigner.sign(signedDifferentData);
-
-        for (Security s : mSecurities) {
-            assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
-        }
-    }
-
-    @Test
-    public void verifyPurchaseDebugFalse() {
-        Logger logger = new DiscardLogger();
-        String base64PublicKey = Constants.TEST_PUBLIC_KEY_BASE_64;
-        String signedData = Constants.TEST_JSON_RECEIPT;
-        String signedDifferentData = Constants.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE;
-        String signature = DataSigner.sign(signedDifferentData);
+        String base64PublicKey = DataConverter.TEST_PUBLIC_KEY_BASE_64;
+        String signedData = DataConverter.TEST_JSON_RECEIPT;
+        String signedDifferentData = DataConverter.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE;
+        String signature = mDataSigner.sign(signedDifferentData, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
 
         for (Security s : mSecurities) {
             assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
@@ -130,11 +109,11 @@ public class SecurityTest {
     }
 
     @Test
-    public void verifyPurchaseSignedDataAndSignatureEmpty() {
+    public void verifyPurchaseStaticResponseSignedDataEmpty() {
         Logger logger = new DiscardLogger();
         String base64PublicKey = "base64PublicKey";
         String signedData = "";
-        String signature = "";
+        String signature = "signature";
 
         for (Security s : mSecurities) {
             assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();
@@ -142,11 +121,11 @@ public class SecurityTest {
     }
 
     @Test
-    public void verifyPurchaseStaticResponseSignedDataEmpty() {
+    public void verifyPurchaseSignedDataAndSignatureEmpty() {
         Logger logger = new DiscardLogger();
         String base64PublicKey = "base64PublicKey";
         String signedData = "";
-        String signature = "signature";
+        String signature = "";
 
         for (Security s : mSecurities) {
             assertThat(s.verifyPurchase(logger, base64PublicKey, signedData, signature)).isFalse();

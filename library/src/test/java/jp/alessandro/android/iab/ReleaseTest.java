@@ -31,6 +31,7 @@ import java.util.List;
 import jp.alessandro.android.iab.handler.ConsumeItemHandler;
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.response.PurchaseResponse;
+import jp.alessandro.android.iab.util.DataConverter;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
@@ -42,7 +43,8 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 @Config(manifest = Config.NONE, constants = BuildConfig.class)
 public class ReleaseTest {
 
-    private final BillingContext mContext = DataCreator.newBillingContext(RuntimeEnvironment.application);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
+    private final BillingContext mContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
 
     private BillingProcessor mProcessor;
 
@@ -54,6 +56,48 @@ public class ReleaseTest {
                 assertThat(response).isNotNull();
             }
         });
+    }
+
+    @Test
+    public void releasePattern1() {
+        mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                assertThat(response).isNotNull();
+            }
+        });
+        mProcessor.release();
+        mProcessor.getWorkHandler();
+        mProcessor.release();
+        mProcessor.getMainHandler();
+        mProcessor.release();
+    }
+
+    @Test
+    public void releasePattern2() {
+        mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                assertThat(response).isNotNull();
+            }
+        });
+        mProcessor.getMainHandler();
+        mProcessor.release();
+        mProcessor.getWorkHandler();
+        mProcessor.release();
+    }
+
+    @Test
+    public void releasePattern3() {
+        mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                assertThat(response).isNotNull();
+            }
+        });
+        mProcessor.getMainHandler();
+        mProcessor.getWorkHandler();
+        mProcessor.release();
     }
 
     @Test
@@ -94,7 +138,7 @@ public class ReleaseTest {
     public void releaseAndConsume() {
         mProcessor.release();
         try {
-            mProcessor.consume(Constants.TEST_PRODUCT_ID, new ConsumeItemHandler() {
+            mProcessor.consume(DataConverter.TEST_PRODUCT_ID, new ConsumeItemHandler() {
                 @Override
                 public void onSuccess() {
                     throw new IllegalStateException();
@@ -126,7 +170,7 @@ public class ReleaseTest {
         mProcessor.release();
         try {
             List<String> oldIds = new ArrayList<>();
-            oldIds.add(Constants.TEST_PRODUCT_ID);
+            oldIds.add(DataConverter.TEST_PRODUCT_ID);
 
             mProcessor.updateSubscription(null, 0, oldIds, null, null, null);
             mProcessor.release();

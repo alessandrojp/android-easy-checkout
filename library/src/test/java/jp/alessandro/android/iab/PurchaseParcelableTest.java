@@ -26,6 +26,9 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.DataSigner;
+
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
 /**
@@ -39,17 +42,22 @@ public class PurchaseParcelableTest {
     @Test
     public void writeToParcelAutoRenewingTrue() throws JSONException {
         Purchase purchase = Purchase.parseJson(
-                Constants.TEST_JSON_RECEIPT,
-                DataSigner.sign(Constants.TEST_JSON_RECEIPT));
+                DataConverter.TEST_JSON_RECEIPT,
+                new DataSigner().sign(DataConverter.TEST_JSON_RECEIPT, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM));
 
         writeToParcel(purchase);
     }
 
     @Test
     public void writeToParcelAutoRenewingFalse() throws JSONException {
+        String signature = new DataSigner().sign(
+                DataConverter.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE,
+                Security.KEY_FACTORY_ALGORITHM,
+                Security.SIGNATURE_ALGORITHM);
+
         Purchase purchase = Purchase.parseJson(
-                Constants.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE,
-                DataSigner.sign(Constants.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE));
+                DataConverter.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE,
+                signature);
 
         writeToParcel(purchase);
     }

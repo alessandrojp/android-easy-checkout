@@ -461,7 +461,7 @@ public class BillingProcessor {
     /**
      * Handler to post all events in the library
      */
-    private Handler getMainHandler() {
+    protected Handler getMainHandler() {
         if (mMainHandler == null) {
             mMainHandler = new Handler(Looper.getMainLooper());
         }

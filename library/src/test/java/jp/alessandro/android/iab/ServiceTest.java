@@ -18,7 +18,6 @@
 
 package jp.alessandro.android.iab;
 
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -35,12 +34,13 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
-import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
-import org.robolectric.shadows.ShadowApplication;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.ServiceStub;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -59,12 +59,12 @@ public class ServiceTest {
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.KEY_FACTORY_ALGORITHM);
+    private final ServiceStub mServiceStub = new ServiceStub();
+
     @Before
     public void setUp() throws Exception {
-        ShadowApplication shadowApplication = Shadows.shadowOf(RuntimeEnvironment.application);
-        IInAppBillingService.Stub stub = new ServiceStubCreator().create(new Bundle());
-        ComponentName cn = mock(ComponentName.class);
-        shadowApplication.setComponentNameAndServiceForBindService(cn, stub);
+        mServiceStub.setServiceForBinding(new Bundle());
     }
 
     @Test
@@ -73,7 +73,7 @@ public class ServiceTest {
         final CountDownLatch latch = new CountDownLatch(1);
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
-        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
+        BillingContext context = mDataConverter.newBillingContext(mock(Context.class));
         ServiceBinder conn = new ServiceBinder(context, intent);
 
         when(context.getContext().bindService(
@@ -103,7 +103,7 @@ public class ServiceTest {
         final CountDownLatch latch = new CountDownLatch(1);
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
-        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
+        BillingContext context = mDataConverter.newBillingContext(mock(Context.class));
         ServiceBinder conn = new ServiceBinder(context, intent);
 
         when(context.getContext().bindService(
@@ -133,7 +133,7 @@ public class ServiceTest {
         final CountDownLatch latch = new CountDownLatch(1);
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
-        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
+        BillingContext context = mDataConverter.newBillingContext(mock(Context.class));
         ServiceBinder conn = new ServiceBinder(context, intent);
 
         when(context.getContext().bindService(
@@ -163,7 +163,7 @@ public class ServiceTest {
         final CountDownLatch latch = new CountDownLatch(1);
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
-        BillingContext context = DataCreator.newBillingContext(mock(Context.class));
+        BillingContext context = mDataConverter.newBillingContext(mock(Context.class));
         ServiceBinder conn = new ServiceBinder(context, intent);
 
         when(context.getContext().bindService(
@@ -196,7 +196,7 @@ public class ServiceTest {
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
         final ServiceBinder conn = new ServiceBinder(
-                DataCreator.newBillingContext(RuntimeEnvironment.application), intent);
+                mDataConverter.newBillingContext(RuntimeEnvironment.application), intent);
 
         conn.getServiceAsync(new ServiceBinder.Handler() {
             @Override
@@ -207,10 +207,10 @@ public class ServiceTest {
 
             @Override
             public void onError(BillingException e) {
-                throw new IllegalStateException();
+                throw new IllegalStateException(e);
             }
         });
-        conn.onServiceConnected(null, new ServiceStubCreator().create(new Bundle()).asBinder());
+        conn.onServiceConnected(null, mServiceStub.create(new Bundle()).asBinder());
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -221,7 +221,7 @@ public class ServiceTest {
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
         final ServiceBinder conn = new ServiceBinder(
-                DataCreator.newBillingContext(RuntimeEnvironment.application), intent);
+                mDataConverter.newBillingContext(RuntimeEnvironment.application), intent);
 
         conn.getServiceAsync(new ServiceBinder.Handler() {
             @Override
@@ -233,10 +233,10 @@ public class ServiceTest {
 
             @Override
             public void onError(BillingException e) {
-                throw new IllegalStateException();
+                throw new IllegalStateException(e);
             }
         });
-        conn.onServiceConnected(null, new ServiceStubCreator().create(new Bundle()).asBinder());
+        conn.onServiceConnected(null, mServiceStub.create(new Bundle()).asBinder());
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -247,7 +247,7 @@ public class ServiceTest {
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
         final ServiceBinder conn = new ServiceBinder(
-                DataCreator.newBillingContext(RuntimeEnvironment.application), intent);
+                mDataConverter.newBillingContext(RuntimeEnvironment.application), intent);
 
         conn.getServiceAsync(new ServiceBinder.Handler() {
             @Override
@@ -258,10 +258,10 @@ public class ServiceTest {
 
             @Override
             public void onError(BillingException e) {
-                throw new IllegalStateException();
+                throw new IllegalStateException(e);
             }
         });
-        conn.onServiceConnected(null, new ServiceStubCreator().create(new Bundle()).asBinder());
+        conn.onServiceConnected(null, mServiceStub.create(new Bundle()).asBinder());
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -272,7 +272,7 @@ public class ServiceTest {
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
         final ServiceBinder conn = new ServiceBinder(
-                DataCreator.newBillingContext(RuntimeEnvironment.application), intent);
+                mDataConverter.newBillingContext(RuntimeEnvironment.application), intent);
 
         ServiceBinder.Handler handler = new ServiceBinder.Handler() {
             @Override
@@ -283,12 +283,12 @@ public class ServiceTest {
 
             @Override
             public void onError(BillingException e) {
-                throw new IllegalStateException();
+                throw new IllegalStateException(e);
             }
         };
         conn.getServiceAsync(handler);
         conn.getServiceAsync(handler);
-        conn.onServiceConnected(null, new ServiceStubCreator().create(new Bundle()).asBinder());
+        conn.onServiceConnected(null, mServiceStub.create(new Bundle()).asBinder());
 
         latch.await(15, TimeUnit.SECONDS);
     }
@@ -299,7 +299,7 @@ public class ServiceTest {
         Intent intent = new Intent(Constants.ACTION_BILLING_SERVICE_BIND);
         intent.setPackage(Constants.VENDING_PACKAGE);
         final ServiceBinder conn = new ServiceBinder(
-                DataCreator.newBillingContext(RuntimeEnvironment.application), intent);
+                mDataConverter.newBillingContext(RuntimeEnvironment.application), intent);
 
         ServiceBinder.Handler handler = new ServiceBinder.Handler() {
             @Override
@@ -310,7 +310,7 @@ public class ServiceTest {
 
             @Override
             public void onError(BillingException e) {
-                throw new IllegalStateException();
+                throw new IllegalStateException(e);
             }
         };
         conn.getServiceAsync(handler);
