@@ -366,9 +366,7 @@ public class BillingProcessor {
      */
     public void cancel() {
         synchronized (this) {
-            if (mIsReleased) {
-                return;
-            }
+            checkIfIsNotReleased();
             mPurchaseFlows.clear();
 
             if (mMainHandler != null) {

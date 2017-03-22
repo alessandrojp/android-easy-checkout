@@ -51,23 +51,17 @@ class ServiceBinder implements ServiceConnection {
     }
 
     public void unbindService() {
-        synchronized (this) {
-            setBinder(null);
-            mContext.unbindService(this);
-        }
+        setBinder(null);
+        mContext.unbindService(this);
     }
 
     public void getServiceAsync(Handler handler) {
-        synchronized (this) {
-            bindService(handler);
-        }
+        bindService(handler);
     }
 
     @Override
     public void onServiceConnected(ComponentName name, android.os.IBinder binder) {
-        synchronized (this) {
-            setBinder(binder);
-        }
+        setBinder(binder);
     }
 
     @Override

@@ -82,7 +82,7 @@ public class CancelTest {
         mWorkHandler = mProcessor.getWorkHandler();
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void cancelPattern1() {
         mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
             @Override
@@ -98,7 +98,7 @@ public class CancelTest {
         mProcessor.cancel();
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void cancelPattern2() {
         mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
             @Override
@@ -114,7 +114,7 @@ public class CancelTest {
         mProcessor.cancel();
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void cancelPattern3() {
         mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
             @Override
@@ -130,8 +130,8 @@ public class CancelTest {
         mProcessor.cancel();
     }
 
-    @Test
-    public void cancelPattern4() {
+    @Test(expected = IllegalStateException.class)
+    public void releaseAndCancel() {
         mProcessor = new BillingProcessor(mContext, new PurchaseHandler() {
             @Override
             public void call(PurchaseResponse response) {
@@ -190,10 +190,9 @@ public class CancelTest {
 
     @Test
     public void releaseFirstBeforeCancel() throws InterruptedException, RemoteException {
-        mProcessor.release();
-        mProcessor.cancel();
         try {
-            mProcessor.getPurchases(PurchaseType.IN_APP, null);
+            mProcessor.release();
+            mProcessor.cancel();
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_LIBRARY_ALREADY_RELEASED);
         }
