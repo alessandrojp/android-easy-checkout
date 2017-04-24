@@ -56,7 +56,7 @@ import static org.robolectric.Shadows.shadowOf;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE, constants = BuildConfig.class)
-public class StartActivityTest {
+public class StartTest {
 
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
