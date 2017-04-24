@@ -23,6 +23,8 @@ It also solves common problems that developers face while working with In-App Bi
 ### Test coverage 100%
 Easy-Checkout has 100% test coverage and I will try to keep it at that level for stable releases.
 
+![coverage report](https://cloud.githubusercontent.com/assets/20607779/25327910/e6b6101c-2910-11e7-812e-b865886033d4.png)
+
 # Let's get started
 ### Installation
 * Supports Android 2.3 SDK or higher.
