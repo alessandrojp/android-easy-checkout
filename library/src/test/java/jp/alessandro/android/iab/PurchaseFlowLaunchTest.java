@@ -21,56 +21,106 @@ package jp.alessandro.android.iab;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.os.Bundle;
 import android.os.RemoteException;
+
+import com.android.vending.billing.IInAppBillingService;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import jp.alessandro.android.iab.util.DataConverter;
+
 import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Created by Alessandro Yuichi Okimoto on 2017/02/19.
  */
 
 @RunWith(RobolectricTestRunner.class)
+@Config(manifest = Config.NONE, constants = BuildConfig.class)
 public class PurchaseFlowLaunchTest {
 
     private static final String TYPE_IN_APP = "inapp";
     private static final String TYPE_SUBSCRIPTION = "subs";
 
-    private final BillingContext mBillingContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.KEY_FACTORY_ALGORITHM);
+    private final BillingContext mBillingContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
 
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
     @Mock
-    BillingService mService;
+    IInAppBillingService mService;
 
     @Mock
     Activity mActivity;
+
+    @Test
+    public void startIntentSendIntentException() throws RemoteException, BillingException, IntentSender.SendIntentException {
+        PurchaseFlowLauncher launcher = spy(new PurchaseFlowLauncher(mBillingContext, TYPE_IN_APP));
+        int requestCode = 1001;
+        PendingIntent pendingIntent = PendingIntent.getActivity(mBillingContext.getContext(), 1, new Intent(), 0);
+        Bundle bundle = new Bundle();
+        bundle.putLong(Constants.RESPONSE_CODE, 0L);
+        bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
+
+        doThrow(new IntentSender.SendIntentException()).when(mActivity).startIntentSenderForResult(
+                any(IntentSender.class), anyInt(), any(Intent.class), anyInt(), anyInt(), anyInt());
+
+        when(mService.getBuyIntent(
+                mBillingContext.getApiVersion(),
+                mBillingContext.getContext().getPackageName(),
+                "",
+                TYPE_IN_APP,
+                ""
+        )).thenReturn(bundle);
+
+        try {
+            launcher.launch(mService, mActivity, requestCode, null, "", "");
+        } catch (BillingException e) {
+            assertThat(e.getErrorCode()).isEqualTo(Constants.ERROR_SEND_INTENT_FAILED);
+        } finally {
+            verify(mService).getBuyIntent(
+                    mBillingContext.getApiVersion(),
+                    mBillingContext.getContext().getPackageName(),
+                    "",
+                    TYPE_IN_APP,
+                    ""
+            );
+            verifyNoMoreInteractions(mService);
+        }
+    }
 
     @Test
     public void startIntentSenderForResultError() throws RemoteException, BillingException {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, TYPE_IN_APP);
         int requestCode = 1001;
         PendingIntent pendingIntent = PendingIntent.getActivity(mBillingContext.getContext(), 1, new Intent(), 0);
-        pendingIntent.cancel();
+
         Bundle bundle = new Bundle();
         bundle.putLong(Constants.RESPONSE_CODE, 0L);
         bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
+
+        pendingIntent.cancel();
 
         startIntentSender(bundle, launcher, requestCode, Constants.ERROR_SEND_INTENT_FAILED);
     }
@@ -92,7 +142,7 @@ public class PurchaseFlowLaunchTest {
                                    int requestCode,
                                    int errorCode) throws RemoteException {
 
-        Mockito.when(mService.getBuyIntent(
+        when(mService.getBuyIntent(
                 mBillingContext.getApiVersion(),
                 mBillingContext.getContext().getPackageName(),
                 "",
@@ -143,7 +193,7 @@ public class PurchaseFlowLaunchTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, TYPE_IN_APP);
         int requestCode = 1001;
 
-        Mockito.when(mService.getBuyIntent(
+        when(mService.getBuyIntent(
                 mBillingContext.getApiVersion(),
                 mBillingContext.getContext().getPackageName(),
                 "",
@@ -152,7 +202,7 @@ public class PurchaseFlowLaunchTest {
         )).thenThrow(RemoteException.class);
 
         try {
-            launcher.launch(mService, mActivity, requestCode, null, "", "");
+            launcher.launch(mService, mActivity, requestCode, new ArrayList<String>(), "", "");
         } catch (BillingException e) {
             assertThat(e.getErrorCode()).isEqualTo(Constants.ERROR_REMOTE_EXCEPTION);
         } finally {
@@ -176,7 +226,7 @@ public class PurchaseFlowLaunchTest {
         List<String> oldSkus = new ArrayList<>();
         oldSkus.add("test");
 
-        Mockito.when(mService.getBuyIntentToReplaceSkus(
+        when(mService.getBuyIntentToReplaceSkus(
                 BillingApi.VERSION_5.getValue(),
                 mBillingContext.getContext().getPackageName(),
                 oldSkus,
@@ -301,7 +351,7 @@ public class PurchaseFlowLaunchTest {
                                  int requestCode,
                                  int errorCode,
                                  String errorMessage) throws RemoteException {
-        Mockito.when(mService.getBuyIntent(
+        when(mService.getBuyIntent(
                 mBillingContext.getApiVersion(),
                 mBillingContext.getContext().getPackageName(),
                 "",

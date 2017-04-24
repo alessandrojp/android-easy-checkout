@@ -41,6 +41,8 @@ public class PurchaseFlowLauncher {
     private final int mApiVersion;
     private final String mPackageName;
     private final Logger mLogger;
+    private final Security mSecurity;
+
     private int mRequestCode;
 
     PurchaseFlowLauncher(BillingContext context, String itemType) {
@@ -49,6 +51,7 @@ public class PurchaseFlowLauncher {
         mApiVersion = context.getApiVersion();
         mPackageName = context.getContext().getPackageName();
         mLogger = context.getLogger();
+        mSecurity = new Security(BuildConfig.DEBUG);
     }
 
     public void launch(IInAppBillingService service,
@@ -70,20 +73,26 @@ public class PurchaseFlowLauncher {
         try {
             // Purchase an item
             if (oldItemIds == null || oldItemIds.isEmpty()) {
-                return service.getBuyIntent(mApiVersion,
-                        mPackageName, itemId, mItemType, developerPayload);
+                return service.getBuyIntent(
+                        mApiVersion, mPackageName, itemId, mItemType, developerPayload);
             }
             // Upgrade/downgrade of subscriptions must be done on api version 5
             // See https://developer.android.com/google/play/billing/billing_reference.html#upgrade-getBuyIntentToReplaceSkus
-            return service.getBuyIntentToReplaceSkus(BillingApi.VERSION_5.getValue(),
-                    mPackageName, oldItemIds, itemId, mItemType, developerPayload);
+            return service.getBuyIntentToReplaceSkus(
+                    BillingApi.VERSION_5.getValue(),
+                    mPackageName,
+                    oldItemIds,
+                    itemId,
+                    mItemType,
+                    developerPayload);
+
         } catch (RemoteException e) {
             throw new BillingException(Constants.ERROR_REMOTE_EXCEPTION, e.getMessage());
         }
     }
 
     private PendingIntent getPendingIntent(Activity activity, Bundle bundle) throws BillingException {
-        int response = Util.getResponseCodeFromBundle(bundle, mLogger);
+        int response = ResponseExtractor.fromBundle(bundle, mLogger);
         if (response != Constants.BILLING_RESPONSE_RESULT_OK) {
             throw new BillingException(response, Constants.ERROR_MSG_UNABLE_TO_BUY);
         }
@@ -119,7 +128,7 @@ public class PurchaseFlowLauncher {
             throw new BillingException(
                     Constants.ERROR_BAD_RESPONSE, Constants.ERROR_MSG_RESULT_REQUEST_CODE_INVALID);
         }
-        int responseCode = Util.getResponseCodeFromIntent(data, mLogger);
+        int responseCode = ResponseExtractor.fromIntent(data, mLogger);
         String purchaseData = data.getStringExtra(Constants.RESPONSE_INAPP_PURCHASE_DATA);
         String signature = data.getStringExtra(Constants.RESPONSE_INAPP_SIGNATURE);
         return getPurchase(resultCode, responseCode, purchaseData, signature);
@@ -153,7 +162,7 @@ public class PurchaseFlowLauncher {
             throw new BillingException(Constants.ERROR_PURCHASE_DATA,
                     Constants.ERROR_MSG_NULL_PURCHASE_DATA);
         }
-        if (!Security.verifyPurchase(purchaseData, mLogger, mPublicKeyBase64, purchaseData, signature)) {
+        if (!mSecurity.verifyPurchase(mLogger, mPublicKeyBase64, purchaseData, signature)) {
             throw new BillingException(Constants.ERROR_VERIFICATION_FAILED,
                     Constants.ERROR_MSG_VERIFICATION_FAILED);
         }

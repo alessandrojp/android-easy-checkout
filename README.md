@@ -6,14 +6,22 @@
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 Fast and easy checkout library (Android In-App Billing) for Android apps with RxJava support.
-
-This library supports both non-consumable/consumable items and upgrading/downgrading of subscriptions.
-
 For **RxJava** please check [here](https://github.com/alessandrojp/easy-checkout/tree/master/extension-rxjava).
+
+### Why you should use Easy-Checkout?
+This library supports both non-consumable/consumable items and upgrading/downgrading of subscriptions.
 
 NOTE: Upgrade/Downgrade of subscriptions are only available in the api version 5.
 You can still set the api version 3 for other actions in the library.
 The api version 5 automatically will be used only in this case.
+
+It also solves common problems that developers face while working with In-App Billing, such as:
+- How to query purchase information in the background
+- How to load all the purchases using continuationToken
+- How to load all item SKU details, since one request is limited by 20 items. [See more](https://code.google.com/archive/p/marketbilling/issues/137)
+
+### Test coverage 100%
+Easy-Checkout has 100% test coverage and I will try to keep it at that level for stable releases.
 
 # Let's get started
 ### Installation

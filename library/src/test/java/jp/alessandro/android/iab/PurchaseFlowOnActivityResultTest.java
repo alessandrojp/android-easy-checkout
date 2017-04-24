@@ -23,11 +23,13 @@ import android.content.Intent;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 
 import java.util.Locale;
+
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.DataSigner;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
@@ -38,25 +40,17 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 @RunWith(RobolectricTestRunner.class)
 public class PurchaseFlowOnActivityResultTest {
 
-    static Intent newIntent(String data, String signature) {
-        final Intent intent = new Intent();
-        intent.putExtra(Constants.RESPONSE_INAPP_PURCHASE_DATA, data);
-        intent.putExtra(Constants.RESPONSE_INAPP_SIGNATURE, signature);
-        return intent;
-    }
-
-    @Mock
-    BillingService mService;
-
-    private final BillingContext mBillingContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
+    private final DataSigner mDataSigner = new DataSigner();
+    private final BillingContext mBillingContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
 
     @Test
     public void purchaseJsonDataBroken() {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_BROKEN, Security.signData(Constants.TEST_JSON_BROKEN));
+        Intent intent = mDataConverter.newIntent(DataConverter.TEST_JSON_BROKEN, mDataSigner.sign(
+                DataConverter.TEST_JSON_BROKEN, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM));
 
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
@@ -87,8 +81,8 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = 3;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+        Intent intent = mDataConverter.newIntent(DataConverter.TEST_JSON_RECEIPT, mDataSigner.sign(
+                DataConverter.TEST_JSON_RECEIPT, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM));
 
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
@@ -105,7 +99,7 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_CANCELED;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(null, null);
+        Intent intent = mDataConverter.newIntent(null, null);
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
         checkIntent(launcher,
@@ -121,7 +115,7 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(Constants.TEST_JSON_RECEIPT, "");
+        Intent intent = mDataConverter.newIntent(DataConverter.TEST_JSON_RECEIPT, "");
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
         checkIntent(launcher,
@@ -137,7 +131,7 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(Constants.TEST_JSON_RECEIPT, null);
+        Intent intent = mDataConverter.newIntent(DataConverter.TEST_JSON_RECEIPT, null);
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
         checkIntent(launcher,
@@ -153,7 +147,9 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent("", Security.signData(Constants.TEST_JSON_RECEIPT));
+        Intent intent = mDataConverter.newIntent("",
+                mDataSigner.sign(DataConverter.TEST_JSON_RECEIPT, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM));
+
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
         checkIntent(launcher,
@@ -169,7 +165,7 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent("", "");
+        Intent intent = mDataConverter.newIntent("", "");
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
         checkIntent(launcher,
@@ -185,7 +181,7 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(null, null);
+        Intent intent = mDataConverter.newIntent(null, null);
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
         checkIntent(launcher,
@@ -201,7 +197,9 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(null, Security.signData(Constants.TEST_JSON_RECEIPT));
+        Intent intent = mDataConverter.newIntent(null, mDataSigner.sign(
+                DataConverter.TEST_JSON_RECEIPT, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM));
+
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
         checkIntent(launcher,
@@ -231,8 +229,8 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+        Intent intent = mDataConverter.newIntent(DataConverter.TEST_JSON_RECEIPT, mDataSigner.sign(
+                DataConverter.TEST_JSON_RECEIPT, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM));
 
         intent.putExtra(Constants.RESPONSE_CODE, 0L);
 
@@ -244,8 +242,8 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+        Intent intent = mDataConverter.newIntent(DataConverter.TEST_JSON_RECEIPT, mDataSigner.sign(
+                DataConverter.TEST_JSON_RECEIPT, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM));
 
         intent.putExtra(Constants.RESPONSE_CODE, -1001);
 
@@ -257,8 +255,8 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+        Intent intent = mDataConverter.newIntent(DataConverter.TEST_JSON_RECEIPT, mDataSigner.sign(
+                DataConverter.TEST_JSON_RECEIPT, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM));
 
         intent.putExtra(Constants.RESPONSE_CODE, 0);
 
@@ -270,8 +268,8 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+        Intent intent = mDataConverter.newIntent(DataConverter.TEST_JSON_RECEIPT, mDataSigner.sign(
+                DataConverter.TEST_JSON_RECEIPT, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM));
 
         intent.putExtra(Constants.RESPONSE_CODE, "0");
 
@@ -288,8 +286,8 @@ public class PurchaseFlowOnActivityResultTest {
         PurchaseFlowLauncher launcher = new PurchaseFlowLauncher(mBillingContext, Constants.TYPE_IN_APP);
         int requestCode = 0;
         int resultCode = Activity.RESULT_OK;
-        Intent intent = PurchaseFlowOnActivityResultTest.newIntent(
-                Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+        Intent intent = mDataConverter.newIntent(DataConverter.TEST_JSON_RECEIPT, mDataSigner.sign(
+                DataConverter.TEST_JSON_RECEIPT, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM));
 
         checkIntent(launcher, requestCode, resultCode, intent, -1, null);
     }

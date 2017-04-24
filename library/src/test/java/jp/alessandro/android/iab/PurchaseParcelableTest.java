@@ -26,6 +26,9 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.DataSigner;
+
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
 /**
@@ -37,9 +40,35 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 public class PurchaseParcelableTest {
 
     @Test
-    public void writeToParcel() throws JSONException {
-        Purchase purchase = Purchase.parseJson(Constants.TEST_JSON_RECEIPT, Security.signData(Constants.TEST_JSON_RECEIPT));
+    public void writeToParcelAutoRenewingTrue() throws JSONException {
+        Purchase purchase = Purchase.parseJson(
+                DataConverter.TEST_JSON_RECEIPT,
+                new DataSigner().sign(DataConverter.TEST_JSON_RECEIPT, Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM));
 
+        writeToParcel(purchase);
+    }
+
+    @Test
+    public void writeToParcelAutoRenewingFalse() throws JSONException {
+        String signature = new DataSigner().sign(
+                DataConverter.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE,
+                Security.KEY_FACTORY_ALGORITHM,
+                Security.SIGNATURE_ALGORITHM);
+
+        Purchase purchase = Purchase.parseJson(
+                DataConverter.TEST_JSON_RECEIPT_AUTO_RENEWING_FALSE,
+                signature);
+
+        writeToParcel(purchase);
+    }
+
+    @Test
+    public void newArray() {
+        Purchase[] items = Purchase.CREATOR.newArray(10);
+        assertThat(items.length).isEqualTo(10);
+    }
+
+    private void writeToParcel(Purchase purchase) {
         // Obtain a Parcel object and write the parcelable object to it
         Parcel parcel = Parcel.obtain();
         purchase.writeToParcel(parcel, purchase.describeContents());
@@ -59,11 +88,5 @@ public class PurchaseParcelableTest {
         assertThat(purchase.getToken()).isEqualTo(fromParcel.getToken());
         assertThat(purchase.isAutoRenewing()).isEqualTo(fromParcel.isAutoRenewing());
         assertThat(purchase.getSignature()).isEqualTo(fromParcel.getSignature());
-    }
-
-    @Test
-    public void newArray() {
-        Purchase[] items = Purchase.CREATOR.newArray(10);
-        assertThat(items.length).isEqualTo(10);
     }
 }

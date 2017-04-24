@@ -21,6 +21,8 @@ package jp.alessandro.android.iab;
 import android.os.Bundle;
 import android.os.RemoteException;
 
+import com.android.vending.billing.IInAppBillingService;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,6 +37,8 @@ import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import jp.alessandro.android.iab.util.DataConverter;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -52,9 +56,10 @@ public class PurchaseGetterTest {
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
     @Mock
-    BillingService mService;
+    IInAppBillingService mService;
 
-    private final BillingContext mBillingContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
+    private final BillingContext mBillingContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
 
     private PurchaseGetter mGetter;
 
@@ -86,7 +91,7 @@ public class PurchaseGetterTest {
     public void getWithDifferentSizes() throws RemoteException {
         Bundle bundle = new Bundle();
         bundle.putLong(Constants.RESPONSE_CODE, 0L);
-        bundle.putStringArrayList(Constants.RESPONSE_INAPP_PURCHASE_LIST, Util.createPurchaseJsonArray(0, 5));
+        bundle.putStringArrayList(Constants.RESPONSE_INAPP_PURCHASE_LIST, mDataConverter.convertToPurchaseJsonArrayList(0, 5));
         bundle.putStringArrayList(Constants.RESPONSE_INAPP_SIGNATURE_LIST, new ArrayList<String>());
 
         getPurchases(bundle, Constants.ERROR_PURCHASE_DATA, Constants.ERROR_MSG_GET_PURCHASES_DIFFERENT_SIZE);
@@ -101,7 +106,7 @@ public class PurchaseGetterTest {
 
     @Test
     public void getWithPurchasesAndSignaturesEmpty() throws RemoteException {
-        Bundle bundle = Util.createPurchaseBundle(0, 0, 0, null);
+        Bundle bundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, 0, null);
 
         Mockito.when(mService.getPurchases(
                 mBillingContext.getApiVersion(),
@@ -213,7 +218,7 @@ public class PurchaseGetterTest {
     @Test
     public void getWithValidSignatures() throws RemoteException, BillingException {
         int size = 10;
-        Bundle bundle = Util.createPurchaseBundle(0, 0, size, null);
+        Bundle bundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, size, null);
 
         Mockito.when(mService.getPurchases(
                 mBillingContext.getApiVersion(),
@@ -241,8 +246,8 @@ public class PurchaseGetterTest {
     @Test
     public void getWithValidSignatureUsingContinuationToken() throws RemoteException, BillingException {
         String continuationString = "continuation_token";
-        Bundle bundle = Util.createPurchaseBundle(0, 0, 10, continuationString);
-        Bundle bundle2 = Util.createPurchaseBundle(0, 10, 10, null);
+        Bundle bundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, 10, continuationString);
+        Bundle bundle2 = mDataConverter.convertToPurchaseResponseBundle(0, 10, 10, null);
 
         Mockito.when(mService.getPurchases(
                 mBillingContext.getApiVersion(),
@@ -269,11 +274,11 @@ public class PurchaseGetterTest {
 
     @Test
     public void getWithInvalidSignatures() throws RemoteException, BillingException {
-        ArrayList<String> purchaseArray = Util.createPurchaseJsonArray(0, 5);
+        ArrayList<String> purchaseArray = mDataConverter.convertToPurchaseJsonArrayList(0, 5);
         Bundle bundle = new Bundle();
         bundle.putLong(Constants.RESPONSE_CODE, 0L);
         bundle.putStringArrayList(Constants.RESPONSE_INAPP_PURCHASE_LIST, purchaseArray);
-        bundle.putStringArrayList(Constants.RESPONSE_INAPP_SIGNATURE_LIST, Util.createInvalidSignatureRandomlyArray(purchaseArray));
+        bundle.putStringArrayList(Constants.RESPONSE_INAPP_SIGNATURE_LIST, mDataConverter.convertToInvalidSignatureRandomlyArrayList(purchaseArray));
 
         Mockito.when(mService.getPurchases(
                 mBillingContext.getApiVersion(),
@@ -295,11 +300,11 @@ public class PurchaseGetterTest {
 
     @Test
     public void getWithJsonDataBroken() throws RemoteException {
-        ArrayList<String> purchaseArray = Util.createPurchaseJsonBrokenArray();
+        ArrayList<String> purchaseArray = mDataConverter.convertToPurchaseJsonBrokenArrayList();
         Bundle bundle = new Bundle();
         bundle.putLong(Constants.RESPONSE_CODE, 0L);
         bundle.putStringArrayList(Constants.RESPONSE_INAPP_PURCHASE_LIST, purchaseArray);
-        bundle.putStringArrayList(Constants.RESPONSE_INAPP_SIGNATURE_LIST, Util.createSignatureArray(purchaseArray));
+        bundle.putStringArrayList(Constants.RESPONSE_INAPP_SIGNATURE_LIST, mDataConverter.convertToSignatureArrayList(purchaseArray));
 
         Mockito.when(mService.getPurchases(
                 mBillingContext.getApiVersion(),
@@ -321,7 +326,7 @@ public class PurchaseGetterTest {
 
     @Test
     public void getWithLongResponseCode() throws RemoteException {
-        Bundle bundle = Util.createPurchaseBundle(0, 0, 0, null);
+        Bundle bundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, 0, null);
         bundle.putLong(Constants.RESPONSE_CODE, 0L);
 
         getPurchases(bundle, -1, "");
@@ -329,21 +334,21 @@ public class PurchaseGetterTest {
 
     @Test
     public void getWithDifferentResponseCode() throws RemoteException {
-        Bundle bundle = Util.createPurchaseBundle(3, 0, 0, null);
+        Bundle bundle = mDataConverter.convertToPurchaseResponseBundle(3, 0, 0, null);
 
         getPurchases(bundle, 3, Constants.ERROR_MSG_GET_PURCHASES);
     }
 
     @Test
     public void getWithIntegerResponseCode() throws RemoteException {
-        Bundle bundle = Util.createPurchaseBundle(0, 0, 0, null);
+        Bundle bundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, 0, null);
 
         getPurchases(bundle, -1, "");
     }
 
     @Test
     public void getWithNoResponseCode() throws RemoteException {
-        Bundle bundle = Util.createPurchaseBundle(0, 0, 0, null);
+        Bundle bundle = mDataConverter.convertToPurchaseResponseBundle(0, 0, 0, null);
 
         getPurchases(bundle, -1, "");
     }

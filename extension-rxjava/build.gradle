@@ -61,6 +61,15 @@ dependencies {
     compile project(':library')
     compile deps.rxjava
     compile deps.rxandroid
+
+    // Android Testing
+    testCompile deps.supportAnnotations
+    testCompile deps.mockito
+    testCompile deps.junit
+    testCompile deps.assertj3
+    testCompile deps.robolectric
+    testCompile deps.testRunner
+    testCompile deps.testRules
 }
 
 android.libraryVariants.all { variant ->

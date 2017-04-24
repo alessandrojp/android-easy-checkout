@@ -22,36 +22,29 @@ import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.RemoteException;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import jp.alessandro.android.iab.handler.PurchaseHandler;
 import jp.alessandro.android.iab.handler.StartActivityHandler;
 import jp.alessandro.android.iab.response.PurchaseResponse;
+import jp.alessandro.android.iab.util.DataConverter;
+import jp.alessandro.android.iab.util.ServiceStub;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 /**
  * Created by Alessandro Yuichi Okimoto on 2017/02/19.
@@ -61,28 +54,17 @@ import static org.mockito.Mockito.when;
 @Config(manifest = Config.NONE, constants = BuildConfig.class)
 public class OnActivityResultTest {
 
-    private Handler mWorkHandler;
     private BillingProcessor mProcessor;
 
-    private final BillingContext mContext = Util.newBillingContext(RuntimeEnvironment.application);
+    private final DataConverter mDataConverter = new DataConverter(Security.KEY_FACTORY_ALGORITHM, Security.SIGNATURE_ALGORITHM);
+    private final BillingContext mContext = mDataConverter.newBillingContext(RuntimeEnvironment.application);
+    private final ServiceStub mServiceStub = new ServiceStub();
 
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
     @Mock
-    BillingService mService;
-    @Mock
-    ServiceBinder mServiceBinder;
-    @Mock
     Activity mActivity;
-
-    @Before
-    public void setUp() {
-        HandlerThread thread = new HandlerThread("AndroidIabThread");
-        thread.start();
-        // Handler to post all actions in the library
-        mWorkHandler = new Handler(thread.getLooper());
-    }
 
     @Test
     public void onActivityResultInAppSuccess() throws InterruptedException, RemoteException {
@@ -127,104 +109,47 @@ public class OnActivityResultTest {
     private void onActivityResultSuccess(PurchaseType type) throws InterruptedException, RemoteException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int requestCode = 1001;
+        final int itemIndex = 0;
 
-        setUpStartPurchase(latch, type, true);
+        String itemId = String.format(Locale.ENGLISH, "%s_%d", DataConverter.TEST_PRODUCT_ID, itemIndex);
+
+        setUpStartPurchase(latch, itemId, type, true);
         mProcessor.startPurchase(mActivity,
                 requestCode,
-                Constants.TEST_PRODUCT_ID,
+                itemId,
                 type,
-                Constants.TEST_DEVELOPER_PAYLOAD,
+                DataConverter.TEST_DEVELOPER_PAYLOAD,
                 new StartActivityHandler() {
                     @Override
                     public void onSuccess() {
-                        assertThat(mProcessor.onActivityResult(requestCode, -1, Util.newOkIntent())).isTrue();
+                        assertThat(mProcessor.onActivityResult(requestCode, -1, mDataConverter.newOkIntent(itemIndex))).isTrue();
                     }
 
                     @Override
                     public void onError(BillingException e) {
-                        throw new IllegalStateException();
+                        throw new IllegalStateException(e);
                     }
                 });
         latch.await(15, TimeUnit.SECONDS);
     }
 
-    private void onActivityResultSignatureVerificationFailed(PurchaseType type) throws InterruptedException, RemoteException {
+    @Test
+    public void onActivityResultReleaseInApp() throws InterruptedException, RemoteException {
+        onActivityResultWithRelease(PurchaseType.IN_APP);
+    }
+
+    @Test
+    public void onActivityResultReleaseSubscription() throws InterruptedException, RemoteException {
+        onActivityResultWithRelease(PurchaseType.SUBSCRIPTION);
+    }
+
+    @SuppressWarnings("checkstyle:methodlength")
+    private void onActivityResultWithRelease(PurchaseType type) throws InterruptedException, RemoteException {
         final CountDownLatch latch = new CountDownLatch(1);
         final int requestCode = 1001;
+        final int itemIndex = 0;
 
-        setUpStartPurchase(latch, type, false);
-        mProcessor.startPurchase(mActivity,
-                requestCode,
-                Constants.TEST_PRODUCT_ID,
-                type,
-                Constants.TEST_DEVELOPER_PAYLOAD,
-                new StartActivityHandler() {
-                    @Override
-                    public void onSuccess() {
-                        Intent intent = Util.newIntent(0, Constants.TEST_JSON_RECEIPT, "");
-                        assertThat(mProcessor.onActivityResult(requestCode, -1, intent)).isTrue();
-                    }
-
-                    @Override
-                    public void onError(BillingException e) {
-                        throw new IllegalStateException();
-                    }
-                });
-        latch.await(15, TimeUnit.SECONDS);
-    }
-
-    private void onActivityResultDifferentRequestCode(PurchaseType type) throws InterruptedException, RemoteException {
-        final CountDownLatch latch = new CountDownLatch(1);
-        final int requestCode = 1001;
-
-        setUpStartPurchase(latch, type, false);
-        mProcessor.startPurchase(mActivity,
-                requestCode,
-                Constants.TEST_PRODUCT_ID,
-                type,
-                Constants.TEST_DEVELOPER_PAYLOAD,
-                new StartActivityHandler() {
-                    @Override
-                    public void onSuccess() {
-                        assertThat(mProcessor.onActivityResult(1002, -1, Util.newOkIntent())).isFalse();
-                        latch.countDown();
-                    }
-
-                    @Override
-                    public void onError(BillingException e) {
-                        throw new IllegalStateException();
-                    }
-                });
-        latch.await(15, TimeUnit.SECONDS);
-    }
-
-    private void onActivityResultDifferentThread(PurchaseType type) throws InterruptedException, RemoteException {
-        final CountDownLatch latch = new CountDownLatch(1);
-        final int requestCode = 1001;
-
-        setUpStartPurchase(latch, type, false);
-        mProcessor.startPurchase(mActivity,
-                requestCode,
-                Constants.TEST_PRODUCT_ID,
-                type,
-                Constants.TEST_DEVELOPER_PAYLOAD,
-                new StartActivityHandler() {
-                    @Override
-                    public void onSuccess() {
-                        executeOnDifferentThread(latch, requestCode);
-                    }
-
-                    @Override
-                    public void onError(BillingException e) {
-                        throw new IllegalStateException();
-                    }
-                });
-        latch.await(15, TimeUnit.SECONDS);
-    }
-
-    private void setUpStartPurchase(final CountDownLatch latch,
-                                    final PurchaseType type,
-                                    final boolean checkSuccess) throws RemoteException {
+        String itemId = String.format(Locale.ENGLISH, "%s_%d", DataConverter.TEST_PRODUCT_ID, itemIndex);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(mContext.getContext(), 1, new Intent(), 0);
         Bundle bundle = new Bundle();
@@ -234,9 +159,189 @@ public class OnActivityResultTest {
         PurchaseHandler handler = new PurchaseHandler() {
             @Override
             public void call(PurchaseResponse response) {
+                throw new IllegalStateException();
+            }
+        };
+        mProcessor = new BillingProcessor(mContext, handler);
+
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStub.GET_BUY_INTENT, bundle);
+        mServiceStub.setServiceForBinding(stubBundle);
+
+        mProcessor.startPurchase(mActivity,
+                requestCode,
+                itemId,
+                type,
+                DataConverter.TEST_DEVELOPER_PAYLOAD,
+                new StartActivityHandler() {
+                    @Override
+                    public void onSuccess() {
+                        assertThat(mProcessor.onActivityResult(requestCode, -1, mDataConverter.newOkIntent(itemIndex))).isTrue();
+                        mProcessor.release();
+                        latch.countDown();
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onError(BillingException e) {
+                        throw new IllegalStateException(e);
+                    }
+                });
+        latch.await(15, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void onActivityResultCancelInApp() throws InterruptedException, RemoteException {
+        onActivityResultWithCancel(PurchaseType.IN_APP);
+    }
+
+    @Test
+    public void onActivityResultCancelSubscription() throws InterruptedException, RemoteException {
+        onActivityResultWithCancel(PurchaseType.SUBSCRIPTION);
+    }
+
+    @SuppressWarnings("checkstyle:methodlength")
+    private void onActivityResultWithCancel(PurchaseType type) throws InterruptedException, RemoteException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final int requestCode = 1001;
+
+        final int itemIndex = 0;
+        String itemId = String.format(Locale.ENGLISH, "%s_%d", DataConverter.TEST_PRODUCT_ID, itemIndex);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(mContext.getContext(), 1, new Intent(), 0);
+        Bundle bundle = new Bundle();
+        bundle.putLong(Constants.RESPONSE_CODE, 0L);
+        bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
+
+        PurchaseHandler handler = new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
+                throw new IllegalStateException();
+            }
+        };
+        mProcessor = new BillingProcessor(mContext, handler);
+
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStub.GET_BUY_INTENT, bundle);
+        mServiceStub.setServiceForBinding(stubBundle);
+
+        mProcessor.startPurchase(mActivity,
+                requestCode,
+                itemId,
+                type,
+                DataConverter.TEST_DEVELOPER_PAYLOAD,
+                new StartActivityHandler() {
+                    @Override
+                    public void onSuccess() {
+                        assertThat(mProcessor.onActivityResult(requestCode, -1, mDataConverter.newOkIntent(itemIndex))).isTrue();
+                        mProcessor.cancel();
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onError(BillingException e) {
+                        throw new IllegalStateException(e);
+                    }
+                });
+        latch.await(5, TimeUnit.SECONDS);
+    }
+
+    private void onActivityResultSignatureVerificationFailed(PurchaseType type) throws InterruptedException, RemoteException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final int requestCode = 1001;
+
+        setUpStartPurchase(latch, DataConverter.TEST_PRODUCT_ID, type, false);
+        mProcessor.startPurchase(mActivity,
+                requestCode,
+                DataConverter.TEST_PRODUCT_ID,
+                type,
+                DataConverter.TEST_DEVELOPER_PAYLOAD,
+                new StartActivityHandler() {
+                    @Override
+                    public void onSuccess() {
+                        Intent intent = mDataConverter.newIntent(0, DataConverter.TEST_JSON_RECEIPT, "");
+                        assertThat(mProcessor.onActivityResult(requestCode, -1, intent)).isTrue();
+                    }
+
+                    @Override
+                    public void onError(BillingException e) {
+                        throw new IllegalStateException(e);
+                    }
+                });
+        latch.await(15, TimeUnit.SECONDS);
+    }
+
+    private void onActivityResultDifferentRequestCode(PurchaseType type) throws InterruptedException, RemoteException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final int requestCode = 1001;
+
+        final int itemIndex = 0;
+        String itemId = String.format(Locale.ENGLISH, "%s_%d", DataConverter.TEST_PRODUCT_ID, itemIndex);
+
+        setUpStartPurchase(latch, DataConverter.TEST_PRODUCT_ID, type, false);
+        mProcessor.startPurchase(mActivity,
+                requestCode,
+                itemId,
+                type,
+                DataConverter.TEST_DEVELOPER_PAYLOAD,
+                new StartActivityHandler() {
+                    @Override
+                    public void onSuccess() {
+                        assertThat(mProcessor.onActivityResult(1002, -1, mDataConverter.newOkIntent(itemIndex))).isFalse();
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onError(BillingException e) {
+                        throw new IllegalStateException(e);
+                    }
+                });
+        latch.await(15, TimeUnit.SECONDS);
+    }
+
+    private void onActivityResultDifferentThread(PurchaseType type) throws InterruptedException, RemoteException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final int requestCode = 1001;
+
+        setUpStartPurchase(latch, DataConverter.TEST_PRODUCT_ID, type, false);
+        mProcessor.startPurchase(mActivity,
+                requestCode,
+                DataConverter.TEST_PRODUCT_ID,
+                type,
+                DataConverter.TEST_DEVELOPER_PAYLOAD,
+                new StartActivityHandler() {
+                    @Override
+                    public void onSuccess() {
+                        executeOnDifferentThread(latch, requestCode);
+                    }
+
+                    @Override
+                    public void onError(BillingException e) {
+                        throw new IllegalStateException(e);
+                    }
+                });
+        latch.await(15, TimeUnit.SECONDS);
+    }
+
+    private void setUpStartPurchase(final CountDownLatch latch,
+                                    final String itemId,
+                                    final PurchaseType type,
+                                    final boolean checkSuccess) throws RemoteException {
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(mContext.getContext(), 1, new Intent(), 0);
+        Bundle bundle = new Bundle();
+        bundle.putLong(Constants.RESPONSE_CODE, 0L);
+        bundle.putParcelable(Constants.RESPONSE_BUY_INTENT, pendingIntent);
+
+        Bundle stubBundle = new Bundle();
+        stubBundle.putParcelable(ServiceStub.GET_BUY_INTENT, bundle);
+
+        PurchaseHandler handler = new PurchaseHandler() {
+            @Override
+            public void call(PurchaseResponse response) {
                 if (checkSuccess) {
                     assertThat(response.isSuccess()).isTrue();
-                    assertThat(response.getPurchase()).isNotNull();
+                    assertThat(response.getPurchase().getSku()).isEqualTo(itemId);
                 } else {
                     assertThat(response.getException().getErrorCode()).isEqualTo(Constants.ERROR_VERIFICATION_FAILED);
                     assertThat(response.getException().getMessage()).isEqualTo(Constants.ERROR_MSG_VERIFICATION_FAILED);
@@ -244,32 +349,9 @@ public class OnActivityResultTest {
                 latch.countDown();
             }
         };
-        mProcessor = spy(new BillingProcessor(mContext, handler));
+        mProcessor = new BillingProcessor(mContext, handler);
 
-        setUpProcessor(bundle, type);
-
-        doReturn(mWorkHandler).when(mProcessor).getWorkHandler();
-    }
-
-    private void setUpProcessor(Bundle bundle, PurchaseType type) throws RemoteException {
-        when(mService.getBuyIntent(
-                mContext.getApiVersion(),
-                mContext.getContext().getPackageName(),
-                Constants.TEST_PRODUCT_ID,
-                type == PurchaseType.SUBSCRIPTION ? Constants.TYPE_SUBSCRIPTION : Constants.TYPE_IN_APP,
-                Constants.TEST_DEVELOPER_PAYLOAD
-        )).thenReturn(bundle);
-
-        doReturn(true).when(mProcessor).isSupported(type, mService);
-        doReturn(mServiceBinder).when(mProcessor).createServiceBinder();
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                ServiceBinder.Handler handler = invocation.getArgument(0);
-                handler.onBind(mService);
-                return null;
-            }
-        }).when(mServiceBinder).getServiceAsync(any(ServiceBinder.Handler.class));
+        mServiceStub.setServiceForBinding(stubBundle);
     }
 
     private void executeOnDifferentThread(final CountDownLatch latch, final int requestCode) {
@@ -277,7 +359,7 @@ public class OnActivityResultTest {
             @Override
             public void run() {
                 try {
-                    Intent intent = Util.newIntent(0, Constants.TEST_JSON_RECEIPT, "");
+                    Intent intent = mDataConverter.newIntent(0, DataConverter.TEST_JSON_RECEIPT, "");
                     mProcessor.onActivityResult(requestCode, -1, intent);
                 } catch (IllegalStateException e) {
                     assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_METHOD_MUST_BE_CALLED_ON_UI_THREAD);

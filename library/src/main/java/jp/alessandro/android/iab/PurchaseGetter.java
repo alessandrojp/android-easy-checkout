@@ -36,12 +36,14 @@ class PurchaseGetter {
     private final int mApiVersion;
     private final String mPackageName;
     private final Logger mLogger;
+    private final Security mSecurity;
 
     PurchaseGetter(BillingContext context) {
         mPublicKeyBase64 = context.getPublicKeyBase64();
         mApiVersion = context.getApiVersion();
         mPackageName = context.getContext().getPackageName();
         mLogger = context.getLogger();
+        mSecurity = new Security(BuildConfig.DEBUG);
     }
 
     /**
@@ -78,7 +80,7 @@ class PurchaseGetter {
     }
 
     private void checkResponseAndAddPurchases(Bundle bundle, Purchases purchases) throws BillingException {
-        int response = Util.getResponseCodeFromBundle(bundle, mLogger);
+        int response = ResponseExtractor.fromBundle(bundle, mLogger);
 
         if (response != Constants.BILLING_RESPONSE_RESULT_OK) {
             throw new BillingException(response, Constants.ERROR_MSG_GET_PURCHASES);
@@ -135,7 +137,7 @@ class PurchaseGetter {
                                             String signature,
                                             Purchases purchases) throws BillingException {
 
-        if (Security.verifyPurchase(purchaseData, mLogger, mPublicKeyBase64, purchaseData, signature)) {
+        if (mSecurity.verifyPurchase(mLogger, mPublicKeyBase64, purchaseData, signature)) {
             addPurchase(purchaseData, signature, purchases);
             return true;
         }
