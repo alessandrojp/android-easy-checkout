@@ -103,7 +103,7 @@ public class ItemGetterTest {
     public void get20ItemDetails() throws RemoteException, BillingException {
         int size = 20;
         ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
-        ArrayList<String> items = mDataConverter.convertToSkuItemDetailsJsonArrayList(size);
+        ArrayList<String> items = mDataConverter.convertToSkuItemDetailsJsonArrayList(size, PurchaseType.IN_APP);
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
         responseBundle.putStringArrayList(Constants.RESPONSE_DETAILS_LIST, items);
@@ -141,7 +141,7 @@ public class ItemGetterTest {
     public void get70ItemDetails() throws RemoteException, BillingException {
         int size = 70;
         ArrayList<String> itemIds = mDataConverter.convertToItemIdArrayList(size);
-        ArrayList<String> items = mDataConverter.convertToSkuItemDetailsJsonArrayList(size);
+        ArrayList<String> items = mDataConverter.convertToSkuItemDetailsJsonArrayList(size, PurchaseType.IN_APP);
         List<Bundle> splitBundleList = new ArrayList<>();
 
         for (int i = 0; i < itemIds.size(); i += ItemGetter.MAX_SKU_PER_REQUEST) {
