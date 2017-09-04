@@ -314,4 +314,10 @@ if (!isAvailable) {
   public String getCurrency();
   public String getPrice();
   public long getPriceMicros();
+  public String getSubscriptionPeriod();
+  public String getFreeTrialPeriod();
+  public String getIntroductoryPrice();
+  public long getIntroductoryPriceAmountMicros();
+  public String getIntroductoryPricePeriod();
+  public int getIntroductoryPriceCycles();
 ```
