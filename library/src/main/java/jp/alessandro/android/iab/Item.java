@@ -37,9 +37,27 @@ public class Item implements Parcelable {
     private final String mCurrency;
     private final String mPrice;
     private final long mPriceMicros;
+    private final String mSubscriptionPeriod;
+    private final String mFreeTrialPeriod;
+    private final String mIntroductoryPrice;
+    private final long mIntroductoryPriceAmountMicros;
+    private final String mIntroductoryPricePeriod;
+    private final int mIntroductoryPriceCycles;
 
-    public Item(String originalJson, String sku, String type, String title,
-                String description, String currency, String price, long priceMicros) {
+    public Item(String originalJson,
+                String sku,
+                String type,
+                String title,
+                String description,
+                String currency,
+                String price,
+                long priceMicros,
+                String subscriptionPeriod,
+                String freeTrialPeriod,
+                String introductoryPrice,
+                long introductoryPriceAmountMicros,
+                String introductoryPricePeriod,
+                int introductoryPriceCycles) {
         mOriginalJson = originalJson;
         mSku = sku;
         mType = type;
@@ -48,6 +66,12 @@ public class Item implements Parcelable {
         mCurrency = currency;
         mPrice = price;
         mPriceMicros = priceMicros;
+        mSubscriptionPeriod = subscriptionPeriod;
+        mFreeTrialPeriod = freeTrialPeriod;
+        mIntroductoryPrice = introductoryPrice;
+        mIntroductoryPriceAmountMicros = introductoryPriceAmountMicros;
+        mIntroductoryPricePeriod = introductoryPricePeriod;
+        mIntroductoryPriceCycles = introductoryPriceCycles;
     }
 
     public static Item parseJson(String json) throws JSONException {
@@ -60,7 +84,13 @@ public class Item implements Parcelable {
                 obj.optString("description"),
                 obj.optString("price_currency_code"),
                 obj.optString("price"),
-                obj.optLong("price_amount_micros")
+                obj.optLong("price_amount_micros"),
+                obj.optString("subscriptionPeriod"),
+                obj.optString("freeTrialPeriod"),
+                obj.optString("introductoryPricePeriod"),
+                obj.optLong("introductoryPriceAmountMicros"),
+                obj.optString("introductoryPricePeriod"),
+                obj.optInt("introductoryPriceCycles")
         );
     }
 
@@ -73,6 +103,12 @@ public class Item implements Parcelable {
         mCurrency = in.readString();
         mPrice = in.readString();
         mPriceMicros = in.readLong();
+        mSubscriptionPeriod = in.readString();
+        mFreeTrialPeriod = in.readString();
+        mIntroductoryPrice = in.readString();
+        mIntroductoryPriceAmountMicros = in.readLong();
+        mIntroductoryPricePeriod = in.readString();
+        mIntroductoryPriceCycles = in.readInt();
     }
 
     @Override
@@ -90,6 +126,12 @@ public class Item implements Parcelable {
         dest.writeString(mCurrency);
         dest.writeString(mPrice);
         dest.writeLong(mPriceMicros);
+        dest.writeString(mSubscriptionPeriod);
+        dest.writeString(mFreeTrialPeriod);
+        dest.writeString(mIntroductoryPrice);
+        dest.writeLong(mIntroductoryPriceAmountMicros);
+        dest.writeString(mIntroductoryPricePeriod);
+        dest.writeInt(mIntroductoryPriceCycles);
     }
 
     public String getOriginalJson() {
@@ -122,6 +164,30 @@ public class Item implements Parcelable {
 
     public long getPriceMicros() {
         return mPriceMicros;
+    }
+
+    public String getSubscriptionPeriod() {
+        return mSubscriptionPeriod;
+    }
+
+    public String getFreeTrialPeriod() {
+        return mFreeTrialPeriod;
+    }
+
+    public String getIntroductoryPrice() {
+        return mIntroductoryPrice;
+    }
+
+    public long getIntroductoryPriceAmountMicros() {
+        return mIntroductoryPriceAmountMicros;
+    }
+
+    public String getIntroductoryPricePeriod() {
+        return mIntroductoryPricePeriod;
+    }
+
+    public int getIntroductoryPriceCycles() {
+        return mIntroductoryPriceCycles;
     }
 
     public static final Creator<Item> CREATOR = new Creator<Item>() {
