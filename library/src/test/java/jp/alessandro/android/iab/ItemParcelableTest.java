@@ -42,7 +42,7 @@ public class ItemParcelableTest {
 
     @Test
     public void writeToParcel() throws JSONException {
-        Item item = Item.parseJson(String.format(Locale.ENGLISH, DataConverter.SKU_DETAIL_JSON, 0));
+        Item item = Item.parseJson(String.format(Locale.ENGLISH, DataConverter.SKU_SUBSCRIPTION_DETAILS_JSON, 0));
 
         // Obtain a Parcel object and write the parcelable object to it
         Parcel parcel = Parcel.obtain();
@@ -61,6 +61,12 @@ public class ItemParcelableTest {
         assertThat(item.getCurrency()).isEqualTo(fromParcel.getCurrency());
         assertThat(item.getPrice()).isEqualTo(fromParcel.getPrice());
         assertThat(item.getPriceMicros()).isEqualTo(fromParcel.getPriceMicros());
+        assertThat(item.getSubscriptionPeriod()).isEqualTo(fromParcel.getSubscriptionPeriod());
+        assertThat(item.getFreeTrialPeriod()).isEqualTo(fromParcel.getFreeTrialPeriod());
+        assertThat(item.getIntroductoryPrice()).isEqualTo(fromParcel.getIntroductoryPrice());
+        assertThat(item.getIntroductoryPriceAmountMicros()).isEqualTo(fromParcel.getIntroductoryPriceAmountMicros());
+        assertThat(item.getIntroductoryPricePeriod()).isEqualTo(fromParcel.getIntroductoryPricePeriod());
+        assertThat(item.getIntroductoryPriceCycles()).isEqualTo(fromParcel.getIntroductoryPriceCycles());
     }
 
     @Test

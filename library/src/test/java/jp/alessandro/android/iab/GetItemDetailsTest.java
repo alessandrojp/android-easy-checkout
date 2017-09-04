@@ -216,7 +216,7 @@ public class GetItemDetailsTest {
         ArrayList<String> itemIds = new ArrayList<>();
         itemIds.add(DataConverter.TEST_PRODUCT_ID);
 
-        ArrayList<String> items = mDataConverter.convertToSkuItemDetailsJsonArrayList(size);
+        ArrayList<String> items = mDataConverter.convertToSkuItemDetailsJsonArrayList(size, type);
         Bundle responseBundle = new Bundle();
         responseBundle.putLong(Constants.RESPONSE_CODE, 0L);
         responseBundle.putStringArrayList(Constants.RESPONSE_DETAILS_LIST, items);
@@ -233,8 +233,7 @@ public class GetItemDetailsTest {
 
                 List<Item> purchaseList = itemDetails.getAll();
                 for (Item item : purchaseList) {
-                    assertThat(itemDetails.hasItemId(item.getSku())).isTrue();
-                    assertThat(itemDetails.getByItemId(item.getSku())).isNotNull();
+                    checkGetItemDetailsCallback(itemDetails, item, type);
                 }
                 mProcessor.release();
                 latch.countDown();
@@ -282,5 +281,26 @@ public class GetItemDetailsTest {
         shadowOf(mWorkHandler.getLooper()).getScheduler().advanceToNextPostedRunnable();
 
         latch.await(15, TimeUnit.SECONDS);
+    }
+
+    private void checkGetItemDetailsCallback(ItemDetails itemDetails, Item item, PurchaseType type) {
+        assertThat(itemDetails.hasItemId(item.getSku())).isTrue();
+        assertThat(itemDetails.getByItemId(item.getSku())).isNotNull();
+
+        if (type == PurchaseType.IN_APP) {
+            assertThat(itemDetails.getByItemId(item.getSku()).getSubscriptionPeriod()).isEmpty();
+            assertThat(itemDetails.getByItemId(item.getSku()).getFreeTrialPeriod()).isEmpty();
+            assertThat(itemDetails.getByItemId(item.getSku()).getIntroductoryPrice()).isEmpty();
+            assertThat(itemDetails.getByItemId(item.getSku()).getIntroductoryPriceAmountMicros()).isZero();
+            assertThat(itemDetails.getByItemId(item.getSku()).getIntroductoryPricePeriod()).isEmpty();
+            assertThat(itemDetails.getByItemId(item.getSku()).getIntroductoryPriceCycles()).isZero();
+        } else {
+            assertThat(itemDetails.getByItemId(item.getSku()).getSubscriptionPeriod()).isNotEmpty();
+            assertThat(itemDetails.getByItemId(item.getSku()).getFreeTrialPeriod()).isNotEmpty();
+            assertThat(itemDetails.getByItemId(item.getSku()).getIntroductoryPrice()).isNotEmpty();
+            assertThat(itemDetails.getByItemId(item.getSku()).getIntroductoryPriceAmountMicros()).isNotZero();
+            assertThat(itemDetails.getByItemId(item.getSku()).getIntroductoryPricePeriod()).isNotEmpty();
+            assertThat(itemDetails.getByItemId(item.getSku()).getIntroductoryPriceCycles()).isNotZero();
+        }
     }
 }

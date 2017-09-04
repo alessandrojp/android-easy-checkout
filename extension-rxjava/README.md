@@ -1,6 +1,7 @@
 # RxJava extension for Easy Checkout Library
 [![Build Status](https://travis-ci.org/alessandrojp/easy-checkout.svg)](https://travis-ci.org/alessandrojp/easy-checkout)
 [![Bintray](https://img.shields.io/bintray/v/alessandrojp/android/easy-checkout.svg)](https://bintray.com/alessandrojp/android/easy-checkout/view)
+[![codecov](https://codecov.io/gh/alessandrojp/easy-checkout/branch/master/graph/badge.svg)](https://codecov.io/gh/alessandrojp/easy-checkout)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 ### Why you should use Easy-Checkout?
@@ -17,6 +18,8 @@ It also solves common problems that developers face while working with In-App Bi
 
 ### Test coverage 100%
 Easy-Checkout has 100% test coverage and I will try to keep it at that level for stable releases.
+
+![coverage report](https://cloud.githubusercontent.com/assets/20607779/25327910/e6b6101c-2910-11e7-812e-b865886033d4.png)
 
 
 ### Installation
@@ -320,4 +323,10 @@ if (!isAvailable) {
   public String getCurrency();
   public String getPrice();
   public long getPriceMicros();
+  public String getSubscriptionPeriod();
+  public String getFreeTrialPeriod();
+  public String getIntroductoryPrice();
+  public long getIntroductoryPriceAmountMicros();
+  public String getIntroductoryPricePeriod();
+  public int getIntroductoryPriceCycles();
 ```

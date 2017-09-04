@@ -29,6 +29,7 @@ import java.util.Locale;
 import jp.alessandro.android.iab.BillingApi;
 import jp.alessandro.android.iab.BillingContext;
 import jp.alessandro.android.iab.Constants;
+import jp.alessandro.android.iab.PurchaseType;
 
 /**
  * Created by Alessandro Yuichi Okimoto on 2017/02/26.
@@ -76,14 +77,29 @@ public class DataConverter {
 
     public static final String TEST_JSON_BROKEN = "{\"productId\":\"\"";
 
-    public static final String SKU_DETAIL_JSON = "{" +
+    public static final String SKU_DETAILS_JSON = "{" +
+            "\"productId\": \"" + TEST_PRODUCT_ID + "_%d\"," +
+            "\"type\": \"inapp\"," +
+            "\"price\": \"¥1080\"," +
+            "\"price_amount_micros\": \"10800000\"," +
+            "\"price_currency_code\": \"JPY\"," +
+            "\"title\": \"Test Product\"," +
+            "\"description\": \"Fast and easy use Android In-App Billing\"}";
+
+    public static final String SKU_SUBSCRIPTION_DETAILS_JSON = "{" +
             "\"productId\": \"" + TEST_PRODUCT_ID + "_%d\"," +
             "\"type\": \"subs\"," +
             "\"price\": \"¥1080\"," +
             "\"price_amount_micros\": \"10800000\"," +
             "\"price_currency_code\": \"JPY\"," +
             "\"title\": \"Test Product\"," +
-            "\"description\": \"Fast and easy use Android In-App Billing\"}";
+            "\"description\": \"Fast and easy use Android In-App Billing\"," +
+            "\"subscriptionPeriod\": \"P1M\"," +
+            "\"freeTrialPeriod\": \"P7D\"," +
+            "\"introductoryPrice\": \"¥1080\"," +
+            "\"introductoryPriceAmountMicros\": \"10800000\"," +
+            "\"introductoryPricePeriod\": \"P1M\"," +
+            "\"introductoryPriceCycles\": 3}";
 
     private final DataSigner mDataSigner;
 
@@ -204,10 +220,11 @@ public class DataConverter {
         return data;
     }
 
-    public ArrayList<String> convertToSkuItemDetailsJsonArrayList(int size) {
+    public ArrayList<String> convertToSkuItemDetailsJsonArrayList(int size, PurchaseType type) {
         ArrayList<String> purchases = new ArrayList<>();
         for (int i = 0; i < size; i++) {
-            String json = String.format(Locale.ENGLISH, SKU_DETAIL_JSON, i);
+            String targetSku = type == PurchaseType.IN_APP ? SKU_DETAILS_JSON : SKU_SUBSCRIPTION_DETAILS_JSON;
+            String json = String.format(Locale.ENGLISH, targetSku, i);
             purchases.add(json);
         }
         return purchases;
@@ -215,9 +232,9 @@ public class DataConverter {
 
     public ArrayList<String> convertToSkuDetailsJsonBrokenArrayList() {
         ArrayList<String> data = new ArrayList<>();
-        data.add(String.format(Locale.ENGLISH, SKU_DETAIL_JSON, 0));
+        data.add(String.format(Locale.ENGLISH, SKU_DETAILS_JSON, 0));
         data.add(TEST_JSON_BROKEN);
-        data.add(String.format(Locale.ENGLISH, SKU_DETAIL_JSON, 2));
+        data.add(String.format(Locale.ENGLISH, SKU_DETAILS_JSON, 2));
         return data;
     }
 
