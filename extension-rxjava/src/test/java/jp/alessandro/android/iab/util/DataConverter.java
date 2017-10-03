@@ -29,6 +29,7 @@ import java.util.Locale;
 import jp.alessandro.android.iab.BillingApi;
 import jp.alessandro.android.iab.BillingContext;
 import jp.alessandro.android.iab.Constants;
+import jp.alessandro.android.iab.logger.DiscardLogger;
 
 /**
  * Created by Alessandro Yuichi Okimoto on 2017/02/26.
@@ -97,7 +98,12 @@ public class DataConverter {
     }
 
     public BillingContext newBillingContext(Context context) {
-        return new BillingContext(context, TEST_PUBLIC_KEY_BASE_64, BillingApi.VERSION_3);
+        return new BillingContext.Builder()
+                .setContext(context)
+                .setPublicKeyBase64(TEST_PUBLIC_KEY_BASE_64)
+                .setApiVersion(BillingApi.VERSION_3)
+                .setLogger(new DiscardLogger())
+                .build();
     }
 
     public Intent newOkIntent(int index) {
