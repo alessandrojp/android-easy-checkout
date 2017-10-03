@@ -105,7 +105,6 @@ public class ReleaseTest {
         mProcessor.release();
         try {
             mProcessor.getPurchases(PurchaseType.IN_APP, null);
-            mProcessor.release();
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_LIBRARY_ALREADY_RELEASED);
         }
@@ -117,7 +116,6 @@ public class ReleaseTest {
         mProcessor.release();
         try {
             mProcessor.getInventory(PurchaseType.IN_APP, null);
-            mProcessor.release();
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_LIBRARY_ALREADY_RELEASED);
         }
@@ -128,7 +126,6 @@ public class ReleaseTest {
         mProcessor.release();
         try {
             mProcessor.getItemDetails(PurchaseType.IN_APP, null, null);
-            mProcessor.release();
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_LIBRARY_ALREADY_RELEASED);
         }
@@ -159,7 +156,6 @@ public class ReleaseTest {
         mProcessor.release();
         try {
             mProcessor.startPurchase(null, 0, null, null, null, null);
-            mProcessor.release();
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_LIBRARY_ALREADY_RELEASED);
         }
@@ -173,7 +169,6 @@ public class ReleaseTest {
             oldIds.add(DataConverter.TEST_PRODUCT_ID);
 
             mProcessor.updateSubscription(null, 0, oldIds, null, null, null);
-            mProcessor.release();
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_LIBRARY_ALREADY_RELEASED);
         }
@@ -184,7 +179,6 @@ public class ReleaseTest {
         mProcessor.release();
         try {
             mProcessor.onActivityResult(0, 0, null);
-            mProcessor.release();
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).isEqualTo(Constants.ERROR_MSG_LIBRARY_ALREADY_RELEASED);
         }
