@@ -1,5 +1,5 @@
 # RxJava extension for Easy Checkout Library
-[![Build Status](https://travis-ci.org/alessandrojp/easy-checkout.svg)](https://travis-ci.org/alessandrojp/easy-checkout)
+[![Build Status](https://travis-ci.org/alessandrojp/android-easy-checkout.svg)](https://travis-ci.org/alessandrojp/android-easy-checkout)
 [![Bintray](https://img.shields.io/bintray/v/alessandrojp/android/easy-checkout.svg)](https://bintray.com/alessandrojp/android/easy-checkout/view)
 [![codecov](https://codecov.io/gh/alessandrojp/easy-checkout/branch/master/graph/badge.svg)](https://codecov.io/gh/alessandrojp/easy-checkout)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
@@ -68,11 +68,14 @@ Context context = getApplicationContext();
 // Public key generated on the Google Play Console
 String base64EncodedPublicKey = "YOUR_PUBLIC_KEY";
 
-BillingContext context = new BillingContext(
-            context,
-            base64EncodedPublicKey,
-            BillingApi.VERSION_3, // It also supports api version 5
-            new SystemLogger() // If don't want to check the logs, you can just give null
+
+BillingContext.Builder builder = new BillingContext.Builder()
+    .setContext(getApplicationContext()) // App context
+    .setPublicKeyBase64(base64EncodedPublicKey) // Public key generated on the Google Play Console
+    .setApiVersion(BillingApi.VERSION_3) // It also supports version 5
+    .setLogger(new SystemLogger()) // This is optional
+
+BillingContext context = builder.build();
 ```
 
 ### Sample (Sample App coming soon)
@@ -106,13 +109,13 @@ public class SampleActivity extends Activity {
       // Your public key
       String base64EncodedPublicKey = "YOUR_PUBLIC_KEY";
 
-      BillingContext context = new BillingContext(
-              getApplicationContext(), // App context
-              base64EncodedPublicKey, // Public key generated on the Google Play Console
-              BillingApi.VERSION_3, // It also supports version 5
-              new SystemLogger() // If don't want to check the logs, you can just send null
-      );
-      mBillingProcessor = new BillingProcessorObservable(context, mPurchaseHandler);
+      BillingContext.Builder builder = new BillingContext.Builder()
+        .setContext(getApplicationContext()) // App context
+        .setPublicKeyBase64(base64EncodedPublicKey) // Public key generated on the Google Play Console
+        .setApiVersion(BillingApi.VERSION_3) // It also supports version 5
+        .setLogger(new SystemLogger()) // This is optional
+
+      mBillingProcessor = new BillingProcessor(builder.build(), mPurchaseHandler);
     }
 
     @Override
@@ -277,7 +280,7 @@ mBillingProcessor.cancel();
 ```
 
 # Release
-* Release the handlers. Once you release it, you **MUST** to create a new instance.
+* Release the handlers. Once you release it, you **MUST** create a new instance.
 <br />**Note: By releasing it will not cancel the purchase process since the purchase process is not controlled by the app.**
 
 ```java
