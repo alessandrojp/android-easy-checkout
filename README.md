@@ -2,7 +2,7 @@
 ![API](https://img.shields.io/badge/API-9%2B-brightgreen.svg?style=flat)
 [![Build Status](https://travis-ci.org/alessandrojp/android-easy-checkout.svg)](https://travis-ci.org/alessandrojp/android-easy-checkout)
 [![Bintray](https://img.shields.io/bintray/v/alessandrojp/android/easy-checkout.svg)](https://bintray.com/alessandrojp/android/easy-checkout/view)
-[![codecov](https://codecov.io/gh/alessandrojp/easy-checkout/branch/master/graph/badge.svg)](https://codecov.io/gh/alessandrojp/easy-checkout)
+[![codecov](https://codecov.io/gh/alessandrojp/android-easy-checkout/branch/master/graph/badge.svg)](https://codecov.io/gh/alessandrojp/android-easy-checkout)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 Fast and easy checkout library (Android In-App Billing) for Android apps with RxJava support.
